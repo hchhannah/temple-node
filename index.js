@@ -1,4 +1,11 @@
-require('dotenv').config();
+if(process.argv[2] === "mac"){
+  require('dotenv').config({
+    path:__dirname + "/mac.env"
+  });
+}else{
+  require('dotenv').config()
+}
+console.log(process.argv)
 const cors = require('cors');
 
 const corsOptions = {
