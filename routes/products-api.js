@@ -8,12 +8,32 @@ const multipartParser = upload.none();
 // req.params
 // /:category
 
-router.get('/cookies',async (req,res)=>{
+// router.get('/cookies',async (req,res)=>{
+
+//     const [data] = await db.query(
+//         "SELECT * FROM `products` WHERE cid = 1"
+//     )
+
+//     res.json(data)
+// })
+router.get('/',async (req,res)=>{
+    
+    const [data] = await db.query(
+        'SELECT * FROM products WHERE cid = 1 ORDER BY purchase_num DESC LIMIT 10;'
+    )
+})
+router.get('/:category',async (req,res)=>{
+    const category = req.params.category;
+
+    const [cid] = await db.query(
+        `SELECT \`cid\` FROM \`categories\` WHERE \`category_name\` = '${category}';`
+    )
 
     const [data] = await db.query(
-        "SELECT * FROM `products` WHERE cid = 1"
+        `SELECT p.* , c.category_name FROM \`products\` p JOIN \`categories\` c ON p.cid = c.cid WHERE p.cid = '${cid[0].cid}';`
     )
 
     res.json(data)
+    // res.json(cid[0].cid)
 })
 module.exports = router;
