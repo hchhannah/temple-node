@@ -25,15 +25,22 @@ router.get('/',async (req,res)=>{
 router.get('/:category',async (req,res)=>{
     const category = req.params.category;
 
-    const [cid] = await db.query(
-        `SELECT \`cid\` FROM \`categories\` WHERE \`category_name\` = '${category}';`
-    )
+    if(category==='all'){
+        const [data] = await db.query(
+            `SELECT * FROM products `
+            )
+            res.json(data)
+    }else{
 
-    const [data] = await db.query(
-        `SELECT p.* , c.category_name FROM \`products\` p JOIN \`categories\` c ON p.cid = c.cid WHERE p.cid = '${cid[0].cid}';`
-    )
+        const [cid] = await db.query(
+            `SELECT \`cid\` FROM \`categories\` WHERE \`category_name\` = '${category}';`
+        )
+                
+        const [data] = await db.query(
+            `SELECT p.* , c.category_name FROM \`products\` p JOIN \`categories\` c ON p.cid = c.cid WHERE p.cid = '${cid[0].cid}';`
+            )
+            res.json(data)
+        }
 
-    res.json(data)
-    // res.json(cid[0].cid)
 })
 module.exports = router;
