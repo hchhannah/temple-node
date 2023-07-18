@@ -29,6 +29,7 @@ app.get('/', (req, res) => {
     res.send('<h1>This is template</h1>')
 })
 app.use('/shop', require(__dirname + '/routes/products-api') );
+// app.use('/test', require(__dirname + '/routes/products-api') );
 
 const port = process.env.PORT || 3000;
 

@@ -16,12 +16,14 @@ const multipartParser = upload.none();
 
 //     res.json(data)
 // })
-router.get('/',async (req,res)=>{
-    
-    const [data] = await db.query(
-        'SELECT * FROM products WHERE cid = 1 ORDER BY purchase_num DESC LIMIT 10;'
-    )
+router.get('/test',async (req,res)=>{
+    res.json("test")
+    // const [data] = await db.query(
+    //     'SELECT * FROM products WHERE cid = 1 ORDER BY purchase_num DESC LIMIT 10;'
+    // )
 })
+
+
 router.get('/:category',async (req,res)=>{
     const category = req.params.category;
 
@@ -31,7 +33,6 @@ router.get('/:category',async (req,res)=>{
             )
             res.json(data)
     }else{
-
         const [cid] = await db.query(
             `SELECT \`cid\` FROM \`categories\` WHERE \`category_name\` = '${category}';`
         )
