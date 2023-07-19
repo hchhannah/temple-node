@@ -44,6 +44,7 @@ app.get('/', (req, res) => {
 
 // 商品資料api
 app.use('/shop', require(__dirname + '/routes/products-api') );
+// app.use('/test', require(__dirname + '/routes/products-api') );
 
 // 商品首頁輪播熱銷TOP10
 app.post('/shop', async (req, res) => {

@@ -18,7 +18,6 @@ router.get('/:category',async (req,res)=>{
     
     // 依照類別去抓
     }else{
-
         const [cid] = await db.query(
             `SELECT \`cid\` FROM \`categories\` WHERE \`category_name\` = '${category}';`
         )
