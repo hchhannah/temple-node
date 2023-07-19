@@ -44,23 +44,7 @@ app.get('/', (req, res) => {
 
 // 商品資料api
 app.use('/shop', require(__dirname + '/routes/products-api') );
-// app.use('/test', require(__dirname + '/routes/products-api') );
 
-// 商品首頁輪播熱銷TOP10
-app.post('/shop', async (req, res) => {
-  // 從前端傳來的資料
-  const requestData = req.body.requestData; 
-  
-  const [cid] = await db.query(
-        `SELECT \`cid\` FROM \`categories\` WHERE \`category_name\` = '${requestData[0].id}';`
-  )
-  
-  const [data] = await db.query(
-        `SELECT * FROM \`products\` WHERE \`cid\` = ${cid[0].cid} ORDER BY \`purchase_num\` DESC LIMIT 10;`
-  )
-  
-  res.json(data)
-});
 
 // 定義PORT
 const port = process.env.PORT || 3000;
