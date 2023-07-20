@@ -39,11 +39,30 @@ router.get('/:category',async (req,res)=>{
 
 
 // 動態路由來抓資料
-router.get('/:category/:pid',async (req,res)=>{
+router.get('/:category/:pid', async (req, res) => {
     const pid = req.params.pid;
-    const sql = `SELECT \`p\`.* , \`c\`.\`category_name\` FROM \`products\` p JOIN \`categories\` c ON p.\`cid\` = c.cid WHERE p.pid=?;`
-    const [data] = await db.query(sql , [pid])
-    res.json(data)
-})
+    const sql = `SELECT \`p\`.*, \`c\`.\`category_name\` FROM \`products\` p JOIN \`categories\` c ON p.\`cid\` = c.cid WHERE p.pid=?;`
+    const [data] = await db.query(sql, [pid]);
+    const datas = data.map((v) => {
+        return {
+            recommend: v.recommend
+        };
+    });
+    // const recommend = datas[0].recommend;
+    let output = {}
+    if(datas.length > 0){
+        const sql2 = `SELECT * FROM \`products\` WHERE \`recommend\` = ?;`
+        const [rows] = await db.query(sql2, [datas[0].recommend]);
+        output = {
+            data,
+            rows,
+        }   
+    }else{
+        output = {
+            data,
+        }   
+    }
+    res.json(output);
+});
 
 module.exports = router;
