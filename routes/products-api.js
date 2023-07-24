@@ -17,6 +17,7 @@ router.post('/', async (req, res) => {
   });
 
 
+
 // 動態路由來抓資料
 router.get('/:category',async (req,res)=>{
     const category = req.params.category;
@@ -48,7 +49,6 @@ router.get('/:category/:pid', async (req, res) => {
             recommend: v.recommend
         };
     });
-    // const recommend = datas[0].recommend;
     let output = {}
     if(datas.length > 0){
         const sql2 = `SELECT * FROM \`products\` WHERE \`recommend\` = ?;`
@@ -64,5 +64,24 @@ router.get('/:category/:pid', async (req, res) => {
     }
     res.json(output);
 });
+
+// 購物車內容
+router.post('/cart', async (req, res) => {
+    // 從前端傳來的資料(member_id)
+    const requestData = req.body.requestData;
+    const sql = `SELECT p.* , c.quantity FROM products p JOIN cart c ON p.pid = c.pid WHERE member_id = ?;`
+    const [data] = await db.query(sql,[requestData.member_id])
+    res.json(data)
+});
+
+//加入購物車
+router.post('/:category/:pid', async (req, res) => {
+    const requestData = req.body.requestData; 
+    const pid = req.params.pid;
+    const member_id = 'wayz';
+    const sql = `INSERT INTO \`cart\`(\`pid\`, \`quantity\`, \`member_id\`) VALUES (?,?,?)`
+    const [data] = await db.query(sql,[pid, requestData, member_id])
+    res.json(data)
+})
 
 module.exports = router;
