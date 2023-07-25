@@ -67,21 +67,64 @@ router.get('/:category/:pid', async (req, res) => {
 
 // 購物車內容
 router.post('/cart', async (req, res) => {
-    // 從前端傳來的資料(member_id)
-    const requestData = req.body.requestData;
-    const sql = `SELECT p.* , c.quantity FROM products p JOIN cart c ON p.pid = c.pid WHERE member_id = ?;`
-    const [data] = await db.query(sql,[requestData.member_id])
-    res.json(data)
+    // 從前端傳來的資料(member_id(輸出內容)/pid(刪除內容))
+    const { member_id, count, pid } = req.body.requestData;
+
+    console.log('req:', member_id);
+    console.log('req:', count);
+    console.log('req:',  pid);
+    // if(requestData.pid){
+    //     const sql = `DELETE FROM \`cart\` WHERE \`pid\`=?`
+    //     const [data] = await db.query(sql,[requestData.pid])
+    // }
+    if(pid!=null && count!=null && member_id){
+        const sql = `UPDATE \`cart\` SET \`quantity\`=? WHERE \`pid\`=?`
+        const [data] = await db.query(sql,[count, pid])
+        res.json(data)
+    }else{
+        const sql = `SELECT p.* , c.quantity FROM products p JOIN cart c ON p.pid = c.pid WHERE member_id = ?;`
+        const [data] = await db.query(sql,[member_id])
+        // console.log(data)
+        res.json(data)
+    }
 });
+
+// router.delete('/:pid', async (req, res) => {
+//     // 從前端傳來的資料(member_id(輸出內容)/pid(刪除內容))
+//     const { pid } = req.params;
+//     // const requestData = req.body.requestData;
+//     // if(requestData.pid){
+//     //     const sql = `DELETE FROM \`cart\` WHERE \`pid\`=?`
+//     //     const [data] = await db.query(sql,[requestData.pid])
+//     // }
+//     // const sql = `SELECT p.* , c.quantity FROM products p JOIN cart c ON p.pid = c.pid WHERE member_id = ?;`
+//     // const [data] = await db.query(sql,[requestData.member_id])
+//     const sql = `DELETE FROM \`cart\` WHERE \`pid\`=?`
+//     const [data] = await db.query(sql,[pid])
+//     res.json(data)
+// });
 
 //加入購物車
 router.post('/:category/:pid', async (req, res) => {
-    const requestData = req.body.requestData; 
+    const requestData = req.body.requestData;  //quantity
     const pid = req.params.pid;
     const member_id = 'wayz';
-    const sql = `INSERT INTO \`cart\`(\`pid\`, \`quantity\`, \`member_id\`) VALUES (?,?,?)`
-    const [data] = await db.query(sql,[pid, requestData, member_id])
-    res.json(data)
+    const count = `SELECT COUNT(1) FROM \`cart\` WHERE \`pid\`=?;`
+    const [result] =  await db.query(count, [pid])
+    if(result[0]['COUNT(1)'] > 0 ){
+        const sqlQuantity = `SELECT \`quantity\` FROM \`cart\` WHERE \`pid\` =?;`
+        const [currentQuantity] = await db.query( sqlQuantity,[pid] )
+        const quantity = Number(currentQuantity[0].quantity) +  Number(requestData)
+        const sql =`UPDATE \`cart\` SET \`quantity\`=? WHERE \`pid\`=?;`
+        const params = [quantity, pid] 
+        const [data] = await db.query(sql, params)
+        res.json(data)
+    }else{
+        const sql = `INSERT INTO \`cart\`(\`pid\`, \`quantity\`, \`member_id\`) VALUES (?,?,?)`
+        const params = [pid, requestData, member_id]
+        const [data] = await db.query(sql,params)
+        res.json(data)
+    }
 })
 
 module.exports = router;
