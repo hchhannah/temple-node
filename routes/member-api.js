@@ -6,6 +6,7 @@ const upload = require(__dirname + "/../modules/img-upload");
 const multipartParser = upload.none();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { v4: uuidv4 } = require("uuid");
 
 router.use((req, res, next) => {
   res.locals.title = "會員資料 | " + res.locals.title;
@@ -91,7 +92,7 @@ router.get("/", async (req, res) => {
   res.render("members/index", output);
 });
 
-//會員 - 0711 登入 密碼比對
+//會員登入 - 0711  密碼比對
 router.post("/login", async (req, res) => {
   const output = {
     success: false,
@@ -142,6 +143,46 @@ router.post("/login", async (req, res) => {
     token,
   };
   res.json(output);
+});
+
+// 會員註冊 新增資料的功能
+router.post("/signUp", multipartParser, async (req, res) => {
+  // TODO: 要檢查欄位資料
+
+  const sql =
+    "INSERT INTO `members`" +
+    "(`member_id`, `member_account`, `member_password`,`member_name`, `member_address`, `member_birthday`, `member_forum_name`, `member_profile`)" +
+    " VALUES ( ?, ?, ?, ?, ?, ?, null,null)";
+
+  function generateMemberId() {
+    // Generate a version 4 UUID (random UUID)
+    return uuidv4();
+  }
+
+  let member_id = generateMemberId();
+
+  let birthday = dayjs(req.body.member_birthday);
+  if (birthday.isValid()) {
+    birthday = birthday.format("YYYY-MM-DD");
+  } else {
+    birthday = null;
+  }
+
+  const [result] = await db.query(sql, [
+    member_id,
+    req.body.member_account,
+    req.body.member_password,
+    req.body.member_name,
+    req.body.member_address,
+    birthday,
+    req.body.member_forum_name,
+    req.body.member_profile,
+  ]);
+
+  res.json({
+    result,
+    postData: req.body,
+  });
 });
 
 module.exports = router;
