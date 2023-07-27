@@ -1,4 +1,5 @@
 const express = require('express');
+const { data } = require('jquery');
 const router = express.Router();
 const db = require(__dirname+'/../modules/mysql2');
 const upload = require(__dirname+'/../modules/img-upload.js');
@@ -69,9 +70,10 @@ router.get('/:category/:pid', async (req, res) => {
 router.post('/cart', async (req, res) => {
     // 從前端傳來的資料(member_id(輸出內容)/count(更新內容)/pid(刪除內容))
     if(req.body.requestData){
-        const { member_id, count, pid, id} = req.body.requestData;
+        const { member_id, count, pid, id, wannaBuy} = req.body.requestData;
+        console.log(req.body.requestData)
         // 購物車
-        // if(id===1){
+        if(id===1){
             if(pid!=null && count!=null && member_id){
                 // 更新數量
                 const sql = `UPDATE \`cart\` SET \`quantity\`=? WHERE \`pid\`=? AND \`member_id\`=?`
@@ -90,26 +92,31 @@ router.post('/cart', async (req, res) => {
                     const [data] = await db.query(sql,[pid, member_id])        
                 }
             }
+
+            //加入下次再買 並從購物車刪除
+            if(wannaBuy){
+                const sql_count= `SELECT COUNT(1) FROM \`wanna_buy\` WHERE \`pid\`=? AND \`member_id\`=?`
+                const [count] = await db.query(sql_count, [pid, member_id])
+                // 如果有的話更新加入時間
+                if(count[0]['COUNT(1)'] > 0 ){
+                    const sql = `UPDATE \`wanna_buy\` SET\`created_at\`=NOW() WHERE \`pid\`=? AND \`member_id\`=?`
+                    const [rows] = await db.query(sql, [pid, member_id])
+                }else{
+                    const sql = `INSERT INTO \`wanna_buy\`(\`member_id\`, \`pid\`, \`created_at\`) VALUES (?,?,NOW())`
+                    const [rows] = await db.query(sql, [member_id, pid])
+                }
+                const sql_delete = `DELETE FROM \`cart\` WHERE \`pid\`=? AND \`member_id\`=?`
+                const[deleted] = await db.query(sql_delete,[pid, member_id]) 
+            }
             const sql = `SELECT p.* , c.quantity FROM products p JOIN cart c ON p.pid = c.pid WHERE member_id = ?;`
             const [data] = await db.query(sql,[member_id])
             res.json(data)
-        // }else{
+        }else if(id===2){
             //下次再買
-            // if(pid!=0){
-            //     const sql_count= `SELECT COUNT(1) FROM \`wanna_buy\` WHERE \`pid\`=? AND \`member_id\`=?`
-            //     const [count] = await db.query(sql_count, [pid, member_id])
-            //     if(count[0]['COUNT(1)'] > 0 ){
-            //         const sql = `UPDATE \`wanna_buy\` SET\`created_at\`=NOW() WHERE \`pid\`=? AND \`member_id\`=?`
-            //         const [rows] = await db.query(sql, [pid, member_id])
-            //     }else{
-            //         const sql = `INSERT INTO \`wanna_buy\`(\`member_id\`, \`pid\`, \`created_at\`) VALUES (?,?,NOW())`
-            //         const [rows] = await db.query(sql, [member_id, pid])
-            //     }
-            // }
-            // const sql = `SELECT * FROM \`wanna_buy\` WHERE \`member_id\`=? ORDER BY \`created_at\` DESC`
-            // const [data] = await db.query(sql, [member_id])
-            // res.json(data)
-        // }
+            const sql = `SELECT p.* , w.created_at FROM products p JOIN wanna_buy w ON p.pid = w.pid WHERE \`member_id\`=? ORDER BY \`wid\` DESC;`
+            const [data] = await db.query(sql, [member_id])
+            res.json(data)
+        }
     }else{
         // 瀏覽紀錄
         const member_id = 'wayz';
