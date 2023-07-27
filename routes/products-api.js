@@ -111,7 +111,12 @@ router.post('/cart', async (req, res) => {
             const sql = `SELECT p.* , c.quantity FROM products p JOIN cart c ON p.pid = c.pid WHERE member_id = ?;`
             const [data] = await db.query(sql,[member_id])
             res.json(data)
+            
         }else if(id===2){
+            if(wannaBuy){
+                const sql_delete = `DELETE FROM \`wanna_buy\` WHERE \`pid\`=? AND \`member_id\`=?`
+                const[deleted] = await db.query(sql_delete,[pid, member_id]) 
+            }
             //下次再買
             const sql = `SELECT p.* , w.created_at FROM products p JOIN wanna_buy w ON p.pid = w.pid WHERE \`member_id\`=? ORDER BY \`wid\` DESC;`
             const [data] = await db.query(sql, [member_id])
@@ -136,11 +141,16 @@ router.post('/:category/:pid', async (req, res) => {
     if(requestData){
         const count = `SELECT COUNT(1) FROM \`cart\` WHERE \`pid\`=? AND \`member_id\`=?;`
         const [result] =  await db.query(count, [pid, member_id])
+        // const sql_wannaBuy= `SELECT COUNT(1) FROM \`wanna_buy\` WHERE \`pid\`=? AND \`member_id\`=?`
+        // const [wannaBuy] = await db.query(sql_wannaBuy, [pid, member_id])
         if(result[0]['COUNT(1)'] > 0 ){
             // 如果pid已經存在只加數量
             const sqlQuantity = `SELECT \`quantity\` FROM \`cart\` WHERE \`pid\` =? AND \`member_id\`=?;`
             const [currentQuantity] = await db.query( sqlQuantity,[pid , member_id])
-            const quantity = Number(currentQuantity[0].quantity) +  Number(requestData)
+            const sqlStock = `SELECT \`stock_num\` FROM \`products\` WHERE \`pid\` =?;`
+            const [currentStock] = await db.query( sqlStock,[pid])
+            const quantity = (Number(currentQuantity[0].quantity) +  Number(requestData.quantity))>currentStock[0]['stock_num']? currentStock[0]['stock_num'] : Number(currentQuantity[0].quantity) +  Number(requestData.quantity)
+       
             const sql =`UPDATE \`cart\` SET \`quantity\`=? WHERE \`pid\`=? AND \`member_id\`=?;;`
             const params = [quantity, pid, member_id] 
             const [data] = await db.query(sql, params)
@@ -148,9 +158,13 @@ router.post('/:category/:pid', async (req, res) => {
         }else{
             //加入
             const sql = `INSERT INTO \`cart\`(\`pid\`, \`quantity\`, \`member_id\`) VALUES (?,?,?)`
-            const params = [pid, requestData, member_id]
+            const params = [pid, requestData.quantity, member_id]
             const [data] = await db.query(sql,params)
             res.json(data)
+        }
+        if(req.body.requestData.wannaBuy){
+            const sql =`DELETE FROM \`wanna_buy\` WHERE \`pid\`=? AND \`member_id\`=?`
+            const [data] = await db.query(sql,[pid, member_id])
         }
     }else{
         const count = `SELECT COUNT(1) FROM \`browse_history\` WHERE \`pid\` = ? AND \`member_id\`=?`
@@ -165,13 +179,5 @@ router.post('/:category/:pid', async (req, res) => {
         res.json(data)
     }
 })
-
-//下次再買
-// router.post('/wannaBuy', async (req, res) => {
-//     const { member_id, pid } = req.body.requestData;
-//     console.log(member_id)
-//     console.log(pid)
-    
-// })
 
 module.exports = router;
