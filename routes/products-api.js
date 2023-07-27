@@ -69,29 +69,47 @@ router.get('/:category/:pid', async (req, res) => {
 router.post('/cart', async (req, res) => {
     // 從前端傳來的資料(member_id(輸出內容)/count(更新內容)/pid(刪除內容))
     if(req.body.requestData){
-    const { member_id, count, pid } = req.body.requestData;
-
-    if(pid!=null && count!=null && member_id){
-        // 更新數量
-        const sql = `UPDATE \`cart\` SET \`quantity\`=? WHERE \`pid\`=? AND \`member_id\`=?`
-        const [data] = await db.query(sql,[count, pid, member_id])
-    }else if(pid!=null && count===null && member_id){
-        // 刪除內容
-        const sql = `DELETE FROM \`cart\` WHERE \`pid\`=? AND \`member_id\`=?`
-
-        if(Array.isArray(pid)){
-            // 一鍵清空
-            for (let i = 0; i < pid.length; i++) {
-                await db.query(sql,[pid[i], member_id])        
+        const { member_id, count, pid, id} = req.body.requestData;
+        // 購物車
+        // if(id===1){
+            if(pid!=null && count!=null && member_id){
+                // 更新數量
+                const sql = `UPDATE \`cart\` SET \`quantity\`=? WHERE \`pid\`=? AND \`member_id\`=?`
+                const [data] = await db.query(sql,[count, pid, member_id])
+            }else if(pid!=null && count===null && member_id){
+                // 刪除內容
+                const sql = `DELETE FROM \`cart\` WHERE \`pid\`=? AND \`member_id\`=?`
+                
+                if(Array.isArray(pid)){
+                    // 一鍵清空
+                    for (let i = 0; i < pid.length; i++) {
+                        await db.query(sql,[pid[i], member_id])        
+                    }
+                }else{
+                    // 清除個別商品
+                    const [data] = await db.query(sql,[pid, member_id])        
+                }
             }
-        }else{
-            // 清除個別商品
-            const [data] = await db.query(sql,[pid, member_id])        
-        }
-    }
-    const sql = `SELECT p.* , c.quantity FROM products p JOIN cart c ON p.pid = c.pid WHERE member_id = ?;`
-    const [data] = await db.query(sql,[member_id])
-    res.json(data)
+            const sql = `SELECT p.* , c.quantity FROM products p JOIN cart c ON p.pid = c.pid WHERE member_id = ?;`
+            const [data] = await db.query(sql,[member_id])
+            res.json(data)
+        // }else{
+            //下次再買
+            // if(pid!=0){
+            //     const sql_count= `SELECT COUNT(1) FROM \`wanna_buy\` WHERE \`pid\`=? AND \`member_id\`=?`
+            //     const [count] = await db.query(sql_count, [pid, member_id])
+            //     if(count[0]['COUNT(1)'] > 0 ){
+            //         const sql = `UPDATE \`wanna_buy\` SET\`created_at\`=NOW() WHERE \`pid\`=? AND \`member_id\`=?`
+            //         const [rows] = await db.query(sql, [pid, member_id])
+            //     }else{
+            //         const sql = `INSERT INTO \`wanna_buy\`(\`member_id\`, \`pid\`, \`created_at\`) VALUES (?,?,NOW())`
+            //         const [rows] = await db.query(sql, [member_id, pid])
+            //     }
+            // }
+            // const sql = `SELECT * FROM \`wanna_buy\` WHERE \`member_id\`=? ORDER BY \`created_at\` DESC`
+            // const [data] = await db.query(sql, [member_id])
+            // res.json(data)
+        // }
     }else{
         // 瀏覽紀錄
         const member_id = 'wayz';
@@ -105,7 +123,6 @@ router.post('/cart', async (req, res) => {
 // Insert into cart & history
 router.post('/:category/:pid', async (req, res) => {
     const requestData = req.body.requestData;  // quantity
-    // console.log(requestData)
     const pid = req.params.pid;
     const member_id = 'wayz';
     //加入購物車
@@ -141,5 +158,13 @@ router.post('/:category/:pid', async (req, res) => {
         res.json(data)
     }
 })
+
+//下次再買
+// router.post('/wannaBuy', async (req, res) => {
+//     const { member_id, pid } = req.body.requestData;
+//     console.log(member_id)
+//     console.log(pid)
+    
+// })
 
 module.exports = router;
