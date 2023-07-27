@@ -4,7 +4,9 @@ const router = express.Router();
 const db = require(__dirname+'/../modules/mysql2');
 const upload = require(__dirname+'/../modules/img-upload.js');
 const multipartParser = upload.none();
-const currentTime = new Date();
+
+
+
 
 // 商品首頁輪播熱銷TOP10
 router.post('/', async (req, res) => {
@@ -179,5 +181,12 @@ router.post('/:category/:pid', async (req, res) => {
         res.json(data)
     }
 })
-
+// navbar購物車資料
+router.get('/', async (req, res) => {
+  const member_id = 'wayz'
+  const sql = `SELECT COUNT(1) FROM \`cart\` WHERE \`member_id\`=?`
+  const [data] = await db.query(sql, [member_id])
+  console.log('haha');
+  res.json(data[0]['COUNT(1)'])
+});
 module.exports = router;

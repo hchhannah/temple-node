@@ -42,8 +42,10 @@ app.get('/', (req, res) => {
     res.send('<h1>This is template</h1>')
 })
 
+
 // 商品資料api
 app.use('/shop', require(__dirname + '/routes/products-api') );
+
 
 
 // 定義PORT
