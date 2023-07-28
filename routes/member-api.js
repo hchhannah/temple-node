@@ -149,6 +149,19 @@ router.post("/login", async (req, res) => {
 router.post("/signUp", multipartParser, async (req, res) => {
   // TODO: 要檢查欄位資料
 
+  // 0728 檢查 email 是否已存在
+  const checkEmailQuery =
+    "SELECT COUNT(*) AS count FROM `members` WHERE `member_account` = ?";
+  const [emailResult] = await db.query(checkEmailQuery, [
+    req.body.member_account,
+  ]);
+  const emailExists = emailResult[0].count > 0;
+
+  if (emailExists) {
+    return res.status(409).json({ error: "該 email 已被使用。" });
+  }
+
+  // email 不存在，執行插入操作
   const sql =
     "INSERT INTO `members`" +
     "(`member_id`, `member_account`, `member_password`,`member_name`, `member_address`, `member_birthday`, `member_forum_name`, `member_profile`)" +
@@ -161,6 +174,7 @@ router.post("/signUp", multipartParser, async (req, res) => {
 
   let member_id = generateMemberId();
 
+  // 0728 讓生日格式一致
   let birthday = dayjs(req.body.member_birthday);
   if (birthday.isValid()) {
     birthday = birthday.format("YYYY-MM-DD");
@@ -183,6 +197,34 @@ router.post("/signUp", multipartParser, async (req, res) => {
     result,
     postData: req.body,
   });
+});
+
+//會員資料
+router.get("/profile", async (req, res) => {
+  // let { sid } = req.params;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  console.log(jwtData);
+
+  const sid = res.locals.jwtData.member_id;
+
+  const [rows] = await db.query(`SELECT * FROM members WHERE sid=?`, [sid]);
+
+  if (!rows.length) {
+    return res.redirect(req.baseUrl);
+  }
 });
 
 module.exports = router;

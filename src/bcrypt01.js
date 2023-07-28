@@ -2,7 +2,7 @@
 
 const bcrypt = require("bcryptjs");
 
-const password = "hannah1202";
+const password = "Hannah1202";
 
 const hash = bcrypt.hashSync(password, 10);
 
