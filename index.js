@@ -24,6 +24,12 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// leodder test
+// app.get('/try-db', async (req, res)=>{
+//   const [rows] = await db.query('SELECT * FROM `post` LIMIT 2');
+//   res.json(rows);
+// });
+
 // 前端傳資料用
 const bodyParser = require("body-parser");
 
@@ -47,6 +53,9 @@ app.use("/shop", require(__dirname + "/routes/products-api"));
 // 會員資料api
 app.use("/member", require(__dirname + "/routes/products-api"));
 
+//論壇資料api
+app.use("/forum", require(__dirname + "/routes/forum-api"));
+
 // 定義PORT
 const port = process.env.PORT || 3000;
 
@@ -57,3 +66,9 @@ app.listen(port, () => {
 app.use(express.static("public"));
 app.use(express.static("node_modules/bootstrap/dist"));
 app.use(express.static("node_modules/jquery/dist"));
+
+//自訂middleware 6/14 15:50
+// app.use((req, res, next)=>{
+//   res.locals.nickname = '冬瓜標';
+//   res.locals.title = '錦囊廟計';
+// })
