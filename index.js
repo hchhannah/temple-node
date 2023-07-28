@@ -41,13 +41,14 @@ const router = express.Router();
 const db = require(__dirname + "/modules/mysql2");
 // 照片上傳
 const upload = require(__dirname + "/modules/img-upload.js");
+const jwt = require("jsonwebtoken");
 
 // 0728 自訂 middleware JWT authorization
 app.use((req, res, next) => {
   res.locals.nickname = "小新";
   res.locals.title = "小新的網站";
 
-  // template helper functions
+  //template helper functions
   res.locals.toDateString = (d) => {
     const fm = "YYYY-MM-DD";
     const djs = dayjs(d);
@@ -69,9 +70,9 @@ app.use((req, res, next) => {
       // 測試的情況, 預設是登入
 
       // jwtData = {
-      //   id: 12,
-      //   email: 'test@test.com'
-      // }
+      //   id: "1b1963b1-0bdd-45ef-bea1-d13436b773b2",
+      //   email: "黃琪涵",
+      // };
     } catch (ex) {}
     if (jwtData) {
       res.locals.jwtData = jwtData; // 標記有沒有使用 token
@@ -91,6 +92,7 @@ app.use("/shop", require(__dirname + "/routes/products-api"));
 
 //論壇資料api
 app.use("/forum", require(__dirname + "/routes/forum-api"));
+
 // 會員資料api
 app.use("/member", require(__dirname + "/routes/member-api"));
 
@@ -106,9 +108,9 @@ app.use(express.static("node_modules/bootstrap/dist"));
 app.use(express.static("node_modules/jquery/dist"));
 console.log(`啟動${port}`);
 
-app.use(express.static("public"));
-app.use(express.static("node_modules/bootstrap/dist"));
-app.use(express.static("node_modules/jquery/dist"));
+// app.use(express.static("public"));
+// app.use(express.static("node_modules/bootstrap/dist"));
+// app.use(express.static("node_modules/jquery/dist"));
 
 //自訂middleware 6/14 15:50
 // app.use((req, res, next)=>{
