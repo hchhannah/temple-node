@@ -46,6 +46,9 @@ router.get("/", async (req, res) =>{
         };
         const sql = ` SELECT * FROM post ${where} LIMIT ${perPage * (page-1)}, ${perPage} `;
         [rows] = await db.query(sql);
+        rows.forEach(i => {
+            i.publish_time = dayjs(i.publish_time).format('YYYY-MM-DD-HH:mm:ss');
+        });
     }
     output = {...output, totalRows, perPage, totalPages, page, rows};
     return res.json(output);

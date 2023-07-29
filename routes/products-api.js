@@ -183,10 +183,10 @@ router.post('/:category/:pid', async (req, res) => {
 })
 
 // navbar購物車資料
-router.get('/', async (req, res) => {
-  const member_id = 'wayz'
-  const sql = `SELECT COUNT(1) FROM \`cart\` WHERE \`member_id\`=?`
-  const [data] = await db.query(sql, [member_id])
-  res.json(data[0]['COUNT(1)'])
-});
+// router.get('/', async (req, res) => {
+//   const member_id = 'wayz'
+//   const sql = `SELECT COUNT(1) FROM \`cart\` WHERE \`member_id\`=?`
+//   const [data] = await db.query(sql, [member_id])
+//   res.json(data[0]['COUNT(1)'])
+// });
 module.exports = router;
