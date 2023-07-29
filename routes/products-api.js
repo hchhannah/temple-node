@@ -8,6 +8,65 @@ const multipartParser = upload.none();
 // get(render) put(update) delete post
 
 
+const getListData = async (req)=>{
+    let output = {
+      redirect: '',
+      totalRows:0, 
+      perPage: 25, 
+      totalPages: 0, 
+      page: 1,
+      rows: []
+    }
+    const perPage = 25;
+    let keyword = req.query.keyword || '';
+    let page = req.query.page ? parseInt(req.query.page) : 1;
+    if(!page || page<1) {
+      output.redirect = req.baseUrl;
+      return output;
+    };
+  
+    let where = ' WHERE 1 ';
+    if(keyword) {
+      const kw_escaped = db.escape('%'+keyword+'%');
+      where += ` AND ( 
+        \`name\` LIKE ${kw_escaped} 
+        OR
+        \`address\` LIKE ${kw_escaped}
+        )
+      `;
+    }
+  
+    const t_sql = `SELECT COUNT(1) totalRows FROM address_book ${where}`;
+    const [[{totalRows}]] = await db.query(t_sql);
+    let totalPages = 0;
+    let rows = [];
+    if(totalRows){
+      totalPages = Math.ceil(totalRows/perPage);
+      if(page > totalPages) {
+        output.redirect = req.baseUrl + '?page=' + totalPages;
+        return output;
+      };
+      const sql = ` SELECT * FROM address_book ${where} LIMIT ${perPage*(page-1)}, ${perPage}`;
+      [rows] = await db.query(sql);
+      
+    }
+    output = {...output, totalRows, perPage, totalPages, page, rows, keyword};
+    return output;
+  }
+
+// 商品首頁輪播熱銷TOP10
+router.post('/', async (req, res) => {
+    // 從前端傳來的資料
+    const requestData = req.body.requestData; 
+    // 找出類別
+    const sql1 = `SELECT \`cid\` FROM \`categories\` WHERE \`category_name\` = ?;`
+    const [cid] = await db.query( sql1, [requestData[0].id])
+    // 根據類別篩出購買量最高的前10 
+    const sql2 =  `SELECT * FROM \`products\` WHERE \`cid\` = ? ORDER BY \`purchase_num\` DESC LIMIT 10;`
+    const [data] = await db.query(sql2,[cid[0].cid])    
+    res.json(data)
+});
+
 // 瀏覽紀錄
 router.get('/history', async (req, res) => {
     const member_id = 'wayz';
@@ -59,7 +118,6 @@ router.get('/wannaBuy',async(req,res)=>{
     const [data] = await db.query(sql, [member_id])
     res.json(data)
 })
-
 
 // 加入購物車
 router.post('/cart', async (req, res) => {
@@ -156,7 +214,7 @@ router.delete('/wannaBuy', async(req,res)=>{
     res.json(deleted)
 })
 
-// 動態路由來抓資料
+// 動態路由來抓類別資料
 router.get('/:category',async (req,res)=>{
     const category = req.params.category;
     // 全部
@@ -175,7 +233,7 @@ router.get('/:category',async (req,res)=>{
 
 })
 
-// 動態路由來抓資料
+// 動態路由來抓商品詳細資料
 router.get('/:category/:pid', async (req, res) => {
     const pid = req.params.pid;
 
@@ -203,20 +261,6 @@ router.get('/:category/:pid', async (req, res) => {
         }   
     }
     res.json(output);
-});
-
-
-// 商品首頁輪播熱銷TOP10
-router.post('/', async (req, res) => {
-    // 從前端傳來的資料
-    const requestData = req.body.requestData; 
-    // 找出類別
-    const sql1 = `SELECT \`cid\` FROM \`categories\` WHERE \`category_name\` = ?;`
-    const [cid] = await db.query( sql1, [requestData[0].id])
-    // 根據類別篩出購買量最高的前10 
-    const sql2 =  `SELECT * FROM \`products\` WHERE \`cid\` = ? ORDER BY \`purchase_num\` DESC LIMIT 10;`
-    const [data] = await db.query(sql2,[cid[0].cid])    
-    res.json(data)
 });
 
 
