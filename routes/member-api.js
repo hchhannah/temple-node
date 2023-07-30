@@ -161,6 +161,13 @@ router.post("/signUp", multipartParser, async (req, res) => {
     return res.status(409).json({ error: "該 email 已被使用。" });
   }
 
+  //將密碼用bcrypt編碼
+
+  const password = bcrypt.hashSync(req.body.member_password, 10);
+
+  console.log("輸入密碼:", req.body.member_password);
+  console.log("bcrypt雜湊:", password);
+
   // email 不存在，執行插入操作
   const sql =
     "INSERT INTO `members`" +
@@ -185,7 +192,7 @@ router.post("/signUp", multipartParser, async (req, res) => {
   const [result] = await db.query(sql, [
     member_id,
     req.body.member_account,
-    req.body.member_password,
+    password,
     req.body.member_name,
     req.body.member_address,
     birthday,
