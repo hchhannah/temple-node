@@ -8,51 +8,51 @@ const multipartParser = upload.none();
 // get(render) put(update) delete post
 
 
-const getListData = async (req)=>{
-    let output = {
-      redirect: '',
-      totalRows:0, 
-      perPage: 25, 
-      totalPages: 0, 
-      page: 1,
-      rows: []
-    }
-    const perPage = 25;
-    let keyword = req.query.keyword || '';
-    let page = req.query.page ? parseInt(req.query.page) : 1;
-    if(!page || page<1) {
-      output.redirect = req.baseUrl;
-      return output;
-    };
+// const getListData = async (req)=>{
+//     let output = {
+//       redirect: '',
+//       totalRows:0, 
+//       perPage: 25, 
+//       totalPages: 0, 
+//       page: 1,
+//       rows: []
+//     }
+//     const perPage = 25;
+//     let keyword = req.query.keyword || '';
+//     let page = req.query.page ? parseInt(req.query.page) : 1;
+//     if(!page || page<1) {
+//       output.redirect = req.baseUrl;
+//       return output;
+//     };
   
-    let where = ' WHERE 1 ';
-    if(keyword) {
-      const kw_escaped = db.escape('%'+keyword+'%');
-      where += ` AND ( 
-        \`name\` LIKE ${kw_escaped} 
-        OR
-        \`address\` LIKE ${kw_escaped}
-        )
-      `;
-    }
+//     let where = ' WHERE 1 ';
+//     if(keyword) {
+//       const kw_escaped = db.escape('%'+keyword+'%');
+//       where += ` AND ( 
+//         \`name\` LIKE ${kw_escaped} 
+//         OR
+//         \`address\` LIKE ${kw_escaped}
+//         )
+//       `;
+//     }
   
-    const t_sql = `SELECT COUNT(1) totalRows FROM address_book ${where}`;
-    const [[{totalRows}]] = await db.query(t_sql);
-    let totalPages = 0;
-    let rows = [];
-    if(totalRows){
-      totalPages = Math.ceil(totalRows/perPage);
-      if(page > totalPages) {
-        output.redirect = req.baseUrl + '?page=' + totalPages;
-        return output;
-      };
-      const sql = ` SELECT * FROM address_book ${where} LIMIT ${perPage*(page-1)}, ${perPage}`;
-      [rows] = await db.query(sql);
+//     const t_sql = `SELECT COUNT(1) totalRows FROM address_book ${where}`;
+//     const [[{totalRows}]] = await db.query(t_sql);
+//     let totalPages = 0;
+//     let rows = [];
+//     if(totalRows){
+//       totalPages = Math.ceil(totalRows/perPage);
+//       if(page > totalPages) {
+//         output.redirect = req.baseUrl + '?page=' + totalPages;
+//         return output;
+//       };
+//       const sql = ` SELECT * FROM address_book ${where} LIMIT ${perPage*(page-1)}, ${perPage}`;
+//       [rows] = await db.query(sql);
       
-    }
-    output = {...output, totalRows, perPage, totalPages, page, rows, keyword};
-    return output;
-  }
+//     }
+//     output = {...output, totalRows, perPage, totalPages, page, rows, keyword};
+//     return output;
+//   }
 
 // 商品首頁輪播熱銷TOP10
 router.post('/', async (req, res) => {
@@ -217,18 +217,36 @@ router.delete('/wannaBuy', async(req,res)=>{
 // 動態路由來抓類別資料
 router.get('/:category',async (req,res)=>{
     const category = req.params.category;
+    let totalPages = 0
+    let perPage = 25
+    let page = req.query.page ? parseInt(req.query.page) : 1;
+    console.log(page);
+    console.log(req.query.keyword);
     // 全部
     if(category==='all'){
-        const [data] = await db.query(`SELECT * FROM \`products\` ORDER BY \`purchase_num\` DESC;`)
+        const [data] = await db.query(`SELECT * FROM \`products\` ORDER BY \`purchase_num\` DESC LIMIT 25;`)
         res.json(data)
     
     // 依照類別去抓
     }else{
-        const sql1 = `SELECT \`cid\` FROM \`categories\` WHERE \`category_name\` = ?;`
-        const [cid] = await db.query(sql1,[category])
-        const sql2 =   `SELECT * FROM \`products\` WHERE \`cid\` = ? ORDER BY \`purchase_num\` DESC`
-        const [data] = await db.query( sql2,[cid[0]['cid']])
+        const sql_cid = `SELECT \`cid\` FROM \`categories\` WHERE \`category_name\` = ?;`
+        const [cid] = await db.query(sql_cid,[category])
+        const sql_totalRows =   `SELECT COUNT(1) FROM \`products\` WHERE \`cid\` = ?`
+        const [[{totalRows}]] = await db.query(sql_totalRows,[cid[0]['cid']]);
+
+        // if(totalRows){
+            // totalPages = Math.ceil(totalRows/perPage);
+            // if(page > totalPages) {
+            //   output.redirect = req.baseUrl + '?page=' + totalPages;
+            //   return output;
+            // };
+            // const sql = ` SELECT * FROM address_book ${where} LIMIT ${perPage*(page-1)}, ${perPage}`;
+            // [rows] = await db.query(sql);
+        const sql =   `SELECT * FROM \`products\` WHERE \`cid\` = ? ORDER BY \`purchase_num\` DESC  LIMIT ${perPage*(page-1)}, 25`
+        const [data] = await db.query( sql,[cid[0]['cid']])
         res.json(data)
+        // }
+
         }
 
 })
