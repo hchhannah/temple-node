@@ -228,19 +228,16 @@ router.post('/:category',async (req,res)=>{
     let totalPages = 0
     let perPage = 20    
     let page = req.query.page ? parseInt(req.query.page) : 1;
-    // console.log(req.body.requestData);
     if(req.body.requestData){
         const reqPerPage = req.body.requestData.perPage
-        console.log(reqPerPage);
         if(reqPerPage){
             perPage = reqPerPage
         }
-        // console.log(perPage);
     }
     let where = 'WHERE 1'
     
     // 依照類別去改變WHERE條件
-    if(category!=='all'){
+    if(category!=='all' && !category){
         const sql_cid = `SELECT \`cid\` FROM \`categories\` WHERE \`category_name\` = ?;`
         const [cid] = await db.query(sql_cid,[category])
         where = `WHERE \`cid\` = ${cid[0]['cid']}`
@@ -268,7 +265,8 @@ router.post('/:category',async (req,res)=>{
 
         // SELECT 商品資料
         const sql =   `SELECT * FROM \`products\` ${where} ORDER BY \`purchase_num\` DESC  LIMIT ${perPage*(page-1)}, ${perPage}`
-        const [data] = await db.query( sql)
+        const [data] = await db.query(sql)
+        
 
         
         const pagination = {                
