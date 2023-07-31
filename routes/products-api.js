@@ -106,7 +106,7 @@ router.get('/count', async (req, res) => {
 // 購物車內容
 router.get('/cart',async(req,res)=>{
     const member_id = 'wayz'
-    const sql = `SELECT p.* , c.quantity FROM products p JOIN cart c ON p.pid = c.pid WHERE member_id = ? ORDER BY c.sid DESC;`
+    const sql = `SELECT p.* , c.quantity FROM products p JOIN cart c ON p.pid = c.pid WHERE member_id = ? ORDER BY c.created_at DESC;`
     const [data] = await db.query(sql,[member_id])
     res.json(data)
 })
@@ -137,20 +137,15 @@ router.post('/cart', async (req, res) => {
         // 不能大於庫存量
         const quantity = (Number(currentQuantity[0].quantity) +  Number(count))>currentStock[0]['stock_num']? currentStock[0]['stock_num'] : Number(currentQuantity[0].quantity) +  Number(count)
         // 更新quantity資料
-        const sql = `
-        UPDATE \`cart\` AS c1 
-        JOIN (SELECT MAX(\`sid\`) AS maxSid FROM \`cart\`) AS c2 
-        SET c1.\`quantity\`=?, c1.\`sid\`=c2.maxSid+1 
-        WHERE c1.\`pid\`=? AND c1.\`member_id\`=?;
-      `;
+        const sql = `UPDATE \`cart\` SET \`quantity\`=?,\`created_at\`=NOW() WHERE \`pid\`=? AND \`member_id\`=?`;
       
-      const params = [quantity, pid, member_id];
+        const params = [quantity, pid, member_id];
       
         const [data] = await db.query(sql, params)
         res.json(data)
     }else{
         // 此商品本來不在購物車的話加入購物車
-        const sql = `INSERT INTO \`cart\`(\`pid\`, \`quantity\`, \`member_id\`) VALUES (?,?,?)`
+        const sql = `INSERT INTO \`cart\`(\`pid\`, \`quantity\`, \`member_id\`,\`created_at\`) VALUES (?,?,?,NOW())`
         const params = [pid, count, member_id]
         const [data] = await db.query(sql,params)
         res.json(data)
