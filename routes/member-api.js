@@ -206,7 +206,7 @@ router.post("/signUp", multipartParser, async (req, res) => {
   });
 });
 
-//會員資料
+//會員資料 (抓資料看這個)
 router.get("/profile", async (req, res) => {
   // let { sid } = req.params;
 
