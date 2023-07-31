@@ -207,7 +207,7 @@ router.post("/signUp", multipartParser, async (req, res) => {
 });
 
 //會員資料 (抓資料看這個)
-router.get("/profile", async (req, res) => {
+router.get("/personalinfo", async (req, res) => {
   // let { sid } = req.params;
 
   const output = {
@@ -234,6 +234,70 @@ router.get("/profile", async (req, res) => {
   }
 
   res.json(rows[0]);
+});
+
+//會員資料 抓資料看這個
+
+router.put("/personalinfo", async (req, res) => {
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+  const dataObj = { ...req.body }; // 使用整個 req.body 作為 dataObj
+
+  try {
+    // 0731 檢查 email 和手機是否已存在，排除目前使用者自己的 email 和 phone
+    const checkEmailAndPhoneQuery =
+      "SELECT COUNT(*) AS emailCount, (SELECT COUNT(*) FROM `members` WHERE `member_phone` = ? AND `member_id` <> ?) AS phoneCount FROM `members` WHERE (`member_account` = ? AND `member_id` <> ?)";
+    const [result] = await db.query(checkEmailAndPhoneQuery, [
+      req.body.member_phone,
+      member_id,
+      req.body.member_account,
+      member_id,
+    ]);
+    const { emailCount, phoneCount } = result[0];
+
+    if (emailCount > 0) {
+      return res.status(409).json({ error: "該 email 已被使用。" });
+    }
+
+    if (phoneCount > 0) {
+      return res.status(409).json({ error: "該手機號碼已被使用。" });
+    }
+
+    // 使用 "UPDATE ... SET ? WHERE ..." 語法並使用 dataObj 和 member_id
+    const sql = "UPDATE members SET ? WHERE member_id = ?";
+    const [updateResult] = await db.query(sql, [dataObj, member_id]);
+
+    console.log("updateResult.affectedRows:", updateResult.affectedRows);
+    console.log("updateResult.changedRows:", updateResult.changedRows);
+
+    if (updateResult.affectedRows === 1) {
+      if (updateResult.changedRows === 0) {
+        // 資料沒有變動
+        return res.status(200).json({ message: "資料沒有變動" });
+      } else {
+        // 資料更新成功
+        return res.status(200).json({ success: true });
+      }
+    } else {
+      // 更新失敗
+      return res.status(500).json({ error: "更新失敗" });
+    }
+  } catch (error) {
+    // 資料庫更新出錯
+    return res.status(500).json({ error: "資料庫更新出錯" });
+  }
 });
 
 module.exports = router;
