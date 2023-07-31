@@ -155,27 +155,6 @@ router.post('/cart', async (req, res) => {
     }
 })
 
-//加入下次再買
-router.post('/wannaBuy', async (req, res) => {
-    const member_id = 'wayz'
-    const {pid} = req.body.requestData;
-    // 判斷下次再買了有沒有這筆商品 
-    const sql_count= `SELECT COUNT(1) FROM \`wanna_buy\` WHERE \`pid\`=? AND \`member_id\`=?`
-    const [count] = await db.query(sql_count, [pid, member_id])
-
-    if(count[0]['COUNT(1)'] > 0 ){
-        // 如果有的話更新加入時間
-        const sql = `UPDATE \`wanna_buy\` SET\`created_at\`=NOW() WHERE \`pid\`=? AND \`member_id\`=?`
-        const [rows] = await db.query(sql, [pid, member_id])
-    }else{
-        // 如果沒有的話加入
-        const sql = `INSERT INTO \`wanna_buy\`(\`member_id\`, \`pid\`, \`created_at\`) VALUES (?,?,NOW())`
-        const [rows] = await db.query(sql, [member_id, pid])
-    }
-    const sql_delete = `DELETE FROM \`cart\` WHERE \`pid\`=? AND \`member_id\`=?`
-    const[deleted] = await db.query(sql_delete,[pid, member_id])
-    res.json(deleted)
-})
 
 // 更新購物車數量
 router.put('/cart', async(req,res)=>{
@@ -220,19 +199,30 @@ router.get('/:category',async (req,res)=>{
     let totalPages = 0
     let perPage = 20    
     let page = req.query.page ? parseInt(req.query.page) : 1;
+    // const {page} = req.body.requestData
+    // if(req.body.requestData.page){
+    //     page = req.body.requestData.page
+    // }
     
-    // 依照類別去抓
     let where = 'WHERE 1'
+    
+    // 依照類別去改變WHERE條件
     if(category!=='all'){
         const sql_cid = `SELECT \`cid\` FROM \`categories\` WHERE \`category_name\` = ?;`
         const [cid] = await db.query(sql_cid,[category])
         where = `WHERE \`cid\` = ${cid[0]['cid']}`
     }
 
+    // totalRows (總共幾筆)
     const sql_totalRows =   `SELECT COUNT(1) FROM \`products\` ${where}`
     const [totalRows] = await db.query(sql_totalRows);
+
+    // 有抓到資料的話
     if(totalRows[0]['COUNT(1)']){
+        // totalPages (總頁數) = totalRows (總共幾筆) / perPage (一頁幾筆)
         totalPages = Math.ceil(totalRows[0]['COUNT(1)']/perPage);
+
+        // 如果大於總頁數或是小於第一頁重新導向
         let redirect = {}
         if (!page || page < 1) {
             redirect.redirect = `${req.baseUrl}/${category}?page=1`;
@@ -242,12 +232,14 @@ router.get('/:category',async (req,res)=>{
             redirect.redirect = `${req.baseUrl}/${category}?page=${totalPages}`;
             return res.json(redirect);
           }
+
+        // SELECT 商品資料
         const sql =   `SELECT * FROM \`products\` ${where} ORDER BY \`purchase_num\` DESC  LIMIT ${perPage*(page-1)}, ${perPage}`
         const [data] = await db.query( sql)
+
+        
         const pagination = {                
             page: page,
-            perPage: perPage,
-            totalRows: totalRows[0]['COUNT(1)'],
             totalPages: totalPages,
         }
         let output = {data, pagination} 
@@ -256,6 +248,29 @@ router.get('/:category',async (req,res)=>{
     
     
 })
+
+//加入下次再買
+router.post('/wannaBuy', async (req, res) => {
+    const member_id = 'wayz'
+    const {pid} = req.body.requestData;
+    // 判斷下次再買了有沒有這筆商品 
+    const sql_count= `SELECT COUNT(1) FROM \`wanna_buy\` WHERE \`pid\`=? AND \`member_id\`=?`
+    const [count] = await db.query(sql_count, [pid, member_id])
+
+    if(count[0]['COUNT(1)'] > 0 ){
+        // 如果有的話更新加入時間
+        const sql = `UPDATE \`wanna_buy\` SET\`created_at\`=NOW() WHERE \`pid\`=? AND \`member_id\`=?`
+        const [rows] = await db.query(sql, [pid, member_id])
+    }else{
+        // 如果沒有的話加入
+        const sql = `INSERT INTO \`wanna_buy\`(\`member_id\`, \`pid\`, \`created_at\`) VALUES (?,?,NOW())`
+        const [rows] = await db.query(sql, [member_id, pid])
+    }
+    const sql_delete = `DELETE FROM \`cart\` WHERE \`pid\`=? AND \`member_id\`=?`
+    const[deleted] = await db.query(sql_delete,[pid, member_id])
+    res.json(deleted)
+})
+
 
 // 動態路由來抓商品詳細資料
 router.get('/:category/:pid', async (req, res) => {
