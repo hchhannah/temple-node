@@ -137,8 +137,15 @@ router.post('/cart', async (req, res) => {
         // 不能大於庫存量
         const quantity = (Number(currentQuantity[0].quantity) +  Number(count))>currentStock[0]['stock_num']? currentStock[0]['stock_num'] : Number(currentQuantity[0].quantity) +  Number(count)
         // 更新quantity資料
-        const sql =`UPDATE \`cart\` SET \`quantity\`=? WHERE \`pid\`=? AND \`member_id\`=?;`
-        const params = [quantity, pid, member_id] 
+        const sql = `
+        UPDATE \`cart\` AS c1 
+        JOIN (SELECT MAX(\`sid\`) AS maxSid FROM \`cart\`) AS c2 
+        SET c1.\`quantity\`=?, c1.\`sid\`=c2.maxSid+1 
+        WHERE c1.\`pid\`=? AND c1.\`member_id\`=?;
+      `;
+      
+      const params = [quantity, pid, member_id];
+      
         const [data] = await db.query(sql, params)
         res.json(data)
     }else{
@@ -221,10 +228,15 @@ router.post('/:category',async (req,res)=>{
     let totalPages = 0
     let perPage = 20    
     let page = req.query.page ? parseInt(req.query.page) : 1;
-    // const reqPerPage = req.body.requestData.perPage
-    // if(reqPerPage){
-    //     perPage = reqPerPage
-    // }
+    // console.log(req.body.requestData);
+    if(req.body.requestData){
+        const reqPerPage = req.body.requestData.perPage
+        console.log(reqPerPage);
+        if(reqPerPage){
+            perPage = reqPerPage
+        }
+        // console.log(perPage);
+    }
     let where = 'WHERE 1'
     
     // 依照類別去改變WHERE條件
