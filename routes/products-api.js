@@ -106,7 +106,7 @@ router.get('/count', async (req, res) => {
 // 購物車內容
 router.get('/cart',async(req,res)=>{
     const member_id = 'wayz'
-    const sql = `SELECT p.* , c.quantity FROM products p JOIN cart c ON p.pid = c.pid WHERE member_id = ?;`
+    const sql = `SELECT p.* , c.quantity FROM products p JOIN cart c ON p.pid = c.pid WHERE member_id = ? ORDER BY c.sid DESC;`
     const [data] = await db.query(sql,[member_id])
     res.json(data)
 })
@@ -218,37 +218,43 @@ router.delete('/wannaBuy', async(req,res)=>{
 router.get('/:category',async (req,res)=>{
     const category = req.params.category;
     let totalPages = 0
-    let perPage = 25
+    let perPage = 20    
     let page = req.query.page ? parseInt(req.query.page) : 1;
-    console.log(page);
-    console.log(req.query.keyword);
-    // 全部
-    if(category==='all'){
-        const [data] = await db.query(`SELECT * FROM \`products\` ORDER BY \`purchase_num\` DESC LIMIT 25;`)
-        res.json(data)
     
     // 依照類別去抓
-    }else{
+    let where = 'WHERE 1'
+    if(category!=='all'){
         const sql_cid = `SELECT \`cid\` FROM \`categories\` WHERE \`category_name\` = ?;`
         const [cid] = await db.query(sql_cid,[category])
-        const sql_totalRows =   `SELECT COUNT(1) FROM \`products\` WHERE \`cid\` = ?`
-        const [[{totalRows}]] = await db.query(sql_totalRows,[cid[0]['cid']]);
+        where = `WHERE \`cid\` = ${cid[0]['cid']}`
+    }
 
-        // if(totalRows){
-            // totalPages = Math.ceil(totalRows/perPage);
-            // if(page > totalPages) {
-            //   output.redirect = req.baseUrl + '?page=' + totalPages;
-            //   return output;
-            // };
-            // const sql = ` SELECT * FROM address_book ${where} LIMIT ${perPage*(page-1)}, ${perPage}`;
-            // [rows] = await db.query(sql);
-        const sql =   `SELECT * FROM \`products\` WHERE \`cid\` = ? ORDER BY \`purchase_num\` DESC  LIMIT ${perPage*(page-1)}, 25`
-        const [data] = await db.query( sql,[cid[0]['cid']])
-        res.json(data)
-        // }
-
+    const sql_totalRows =   `SELECT COUNT(1) FROM \`products\` ${where}`
+    const [totalRows] = await db.query(sql_totalRows);
+    if(totalRows[0]['COUNT(1)']){
+        totalPages = Math.ceil(totalRows[0]['COUNT(1)']/perPage);
+        let redirect = {}
+        if (!page || page < 1) {
+            redirect.redirect = `${req.baseUrl}/${category}?page=1`;
+            return res.json(redirect);
+          }
+        if (page > totalPages) {
+            redirect.redirect = `${req.baseUrl}/${category}?page=${totalPages}`;
+            return res.json(redirect);
+          }
+        const sql =   `SELECT * FROM \`products\` ${where} ORDER BY \`purchase_num\` DESC  LIMIT ${perPage*(page-1)}, ${perPage}`
+        const [data] = await db.query( sql)
+        const pagination = {                
+            page: page,
+            perPage: perPage,
+            totalRows: totalRows[0]['COUNT(1)'],
+            totalPages: totalPages,
         }
-
+        let output = {data, pagination} 
+        res.json(output)
+    }
+    
+    
 })
 
 // 動態路由來抓商品詳細資料
