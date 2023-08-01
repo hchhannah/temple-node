@@ -101,7 +101,7 @@ router.get('/count', async (req, res) => {
     const sql = `SELECT COUNT(1) FROM \`cart\` WHERE \`member_id\`=?`
     const [data] = await db.query(sql, [member_id])
     res.json(data[0]['COUNT(1)'])
-  });
+});
   
 // 購物車內容
 router.get('/cart',async(req,res)=>{
@@ -285,8 +285,8 @@ router.get('/:category/:pid', async (req, res) => {
     });
     let output = {}
     if(datas.length > 0){
-        const sql2 = `SELECT * FROM \`products\` WHERE \`recommend\` = ?;`
-        const [related] = await db.query(sql2, [datas[0].recommend]);
+        const sql2 = `SELECT * FROM \`products\` WHERE \`recommend\` = ? AND \`pid\` <> ?;`
+        const [related] = await db.query(sql2, [datas[0].recommend, pid]);
         output = {
             data,
             related,
