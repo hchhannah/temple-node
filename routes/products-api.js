@@ -72,6 +72,31 @@ router.get('/history', async (req, res) => {
     const member_id = 'wayz';
     const sql = `SELECT p.*, b.created_at FROM products p JOIN browse_history b ON p.pid = b.pid WHERE b.member_id=? ORDER BY b.created_at DESC`
     const [data] = await db.query(sql,[member_id])
+    const sql_keep = `SELECT * 
+    FROM (
+        SELECT * 
+        FROM browse_history 
+        WHERE member_id = ?
+        ORDER BY created_at DESC
+        LIMIT 50
+    ) AS subquery;
+    `
+    const [keep] = await db.query(sql_keep,[member_id])
+
+    const sql_deleted = `DELETE FROM browse_history 
+    WHERE member_id =?
+    AND created_at NOT IN (
+        SELECT created_at 
+        FROM (
+            SELECT created_at 
+            FROM browse_history 
+            WHERE member_id = ?
+            ORDER BY created_at DESC
+            LIMIT 50
+        ) AS subquery
+    );`
+    
+    const [deleted] = await db.query(sql_deleted,[member_id, member_id])
     res.json(data)
 })
 
@@ -220,10 +245,14 @@ router.delete('/wannaBuy', async(req,res)=>{
 // 動態路由來抓類別資料
 router.post('/:category',async (req,res)=>{
     const category = req.params.category
-    const {page, perPage} = req.body.requestData;
+    const page = req.params.page
+    const {perPage, sort, orderBy} = req.body.requestData;
     let totalPages = 0
- 
     let where = 'WHERE 1'
+    // purchase_num 熱銷 
+    // product_price 價錢
+    // stars 星星
+    // recommed 詳細類別
     
     // 依照類別去改變WHERE條件
     if(category!=='all'){
@@ -253,12 +282,11 @@ router.post('/:category',async (req,res)=>{
           }
 
         // SELECT 商品資料
-        const sql =   `SELECT * FROM \`products\` ${where} ORDER BY \`purchase_num\` DESC  LIMIT ${perPage*(page-1)}, ${perPage}`
+        const sql =   `SELECT * FROM \`products\` ${where} ORDER BY ${orderBy} ${sort}  LIMIT ${perPage*(page-1)}, ${perPage}`
         const [data] = await db.query(sql)
         
         const pagination = {                
             page: page,
-            perPage: perPage,
             totalPages: totalPages,
         }
         let output = {data, pagination} 
