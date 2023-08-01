@@ -94,6 +94,10 @@ app.use('/shop', require(__dirname + '/routes/products-api') );
 app.use("/forum", require(__dirname + "/routes/forum-api"));
 // 會員資料api
 app.use("/member", require(__dirname + "/routes/member-api"));
+// 求籤資料api
+app.use("/pray", require(__dirname + "/routes/pray-api"));
+// 遶境資料api
+app.use("/pilgrimage", require(__dirname + "/routes/pilgrimage-api"));
 
 // 定義PORT
 const port = process.env.PORT || 3000;

@@ -21,7 +21,7 @@ router.get("/", async (req, res) =>{
         output.redirect = req.baseUrl;
         return res.json(output);
     };
-    const t_sql = `SELECT COUNT(1) totalRows FROM Pray ${where}`;
+    const t_sql = `SELECT COUNT(1) totalRows FROM Online_Question ${where}`;
     const [[{totalRows}]] = await db.query(t_sql);
     let totalPages = 0;
     let rows = [];
@@ -31,7 +31,7 @@ router.get("/", async (req, res) =>{
             output.redirect = req.baseUrl + '?page=' + totalPages;
             return res.json(output);
         };
-        const sql = ` SELECT * FROM Pray ${where} LIMIT ${perPage * (page-1)}, ${perPage} `;
+        const sql = ` SELECT * FROM Online_Question ${where} LIMIT ${perPage * (page-1)}, ${perPage} `;
         [rows] = await db.query(sql);
     }
     output = {...output, totalRows, perPage, totalPages, page, rows};
