@@ -104,7 +104,6 @@ router.get('/history', async (req, res) => {
 router.post('/history', async (req, res) => {
     const member_id = 'wayz';
     const {pid} = req.body.requestData
-    console.log(pid)
      // 如果本來就存在了就刪掉舊的加入新的，沒有就直接加入
      const sql_count = `SELECT COUNT(1) FROM \`browse_history\` WHERE \`pid\` = ? AND \`member_id\`=?`
      const [count] =  await db.query(sql_count, [pid, member_id])
@@ -245,14 +244,10 @@ router.delete('/wannaBuy', async(req,res)=>{
 // 動態路由來抓類別資料
 router.post('/:category',async (req,res)=>{
     const category = req.params.category
-    const page = req.params.page
-    const {perPage, sort, orderBy} = req.body.requestData;
+    const {page, perPage, sort, orderBy, keyword} = req.body.requestData;
     let totalPages = 0
     let where = 'WHERE 1'
-    // purchase_num 熱銷 
-    // product_price 價錢
-    // stars 星星
-    // recommed 詳細類別
+    console.log(keyword);
     
     // 依照類別去改變WHERE條件
     if(category!=='all'){
@@ -260,7 +255,14 @@ router.post('/:category',async (req,res)=>{
         const [cid] = await db.query(sql_cid,[category])
         where = `WHERE \`cid\` = ${cid[0]['cid']}`
     }
-
+   
+    if(keyword) {
+        const kw_escaped = db.escape('%'+keyword+'%');
+        where += ` AND ( 
+        \`product_name\` LIKE ${kw_escaped} 
+        )
+        `;
+    }    
     // totalRows (總共幾筆)
     const sql_totalRows =   `SELECT COUNT(1) FROM \`products\` ${where}`
     const [totalRows] = await db.query(sql_totalRows);
@@ -281,6 +283,7 @@ router.post('/:category',async (req,res)=>{
             return res.json(redirect);
           }
 
+       
         // SELECT 商品資料
         const sql =   `SELECT * FROM \`products\` ${where} ORDER BY ${orderBy} ${sort}  LIMIT ${perPage*(page-1)}, ${perPage}`
         const [data] = await db.query(sql)
