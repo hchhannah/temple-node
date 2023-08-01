@@ -37,13 +37,15 @@ const db = require(__dirname+'/modules/mysql2');
 const upload = require(__dirname+'/modules/img-upload.js');
 
 
-// 測試用(localhost:3002)
-app.get('/', (req, res) => {
-    res.send('<h1>This is template</h1>')
-})
+// // 測試用(localhost:3002)
+// app.get('/', (req, res) => {
+//     res.send('<h1>This is template</h1>')
+// })
+
 
 // 商品資料api
 app.use('/shop', require(__dirname + '/routes/products-api') );
+app.use('/pray', require(__dirname + '/routes/pray-api') );
 
 
 // 定義PORT
