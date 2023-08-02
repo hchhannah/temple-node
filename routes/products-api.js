@@ -196,23 +196,52 @@ router.delete('/wannaBuy', async(req,res)=>{
 router.post('/order',async(req,res)=>{
     const member_id = 'wayz'
     const {cartData, customerData, total, status} = req.body.requestData;
-    console.log(customerData.customer_name);
-    // const sql_ord = `INSERT INTO \`order_summary\`(\`oid\`,\`member_id\`, \`total\`, \`status\`) VALUES (?,?,?,?)`
-    // const sql_ord = `INSERT INTO \`order_summary\`(\`oid\`, \`member_id\`, \`total\`, \`customer_name\`, \`customer_phone\`, \`customer_address\`, \`payment\`, \`delivery\`, \`coupon\`, \`created_at\`, \`status\`) VALUES (?,?,?,?,?,?,?,?,?,NOW(),?)`
-    // const sql_ordDetails = `INSERT INTO \`order_details\`(\`odid\`, \`oid\`, \`quantity\`, \`pid\`, \`price\`) VALUES ('[value-1]','[value-2]','[value-3]','[value-4]','[value-5]')`
-    // const timestamp = new Date().getTime().toString();
-    // const [ord] = await db.query(sql_ord,[timestamp, member_id, total, customer_name, customer_phone, customer_address, payment, delivery, coupon, status])
 
-    //刪除購物車裡結帳的商品
-    // const pidArray = cartData?.map((v,i)=>{
-    //     return cartData[i].pid
-    // })
-    // const sql_deleted = 'DELETE FROM cart WHERE pid IN (?) AND member_id = ?';
-    // const [deleted] = await db.query(sql_deleted, [pidArray, member_id]);
-    // res.json(ord)
+    // for order_summary
+    const{customer_name, customer_phone, customer_address, payment, delivery, coupon} = customerData
+    // Insert into order_summary
+    const sql_ord = `INSERT INTO \`order_summary\`(\`oid\`, \`member_id\`, \`total\`, \`customer_name\`, \`customer_phone\`, \`customer_address\`, \`payment\`, \`delivery\`, \`coupon\`, \`created_at\`, \`status\`) VALUES (?,?,?,?,?,?,?,?,?,NOW(),?)`
+    // timestamp 當訂單編號
+    const timestamp = new Date().getTime().toString();
+    const [ord] = await db.query(sql_ord,[timestamp, member_id, total, customer_name, customer_phone, customer_address, payment, delivery, coupon, status])
+    
+    // Insert into order_details
+    const sql_ordDetails = `INSERT INTO \`order_details\`( \`oid\`, \`quantity\`, \`pid\`, \`price\`) VALUES (?,?,?,?)`
+    const order_details = cartData.map((v)=>{
+        return  { quantity: v.quantity, pid: v.pid, price: v.product_price }
+    })
+    Promise.all(
+        order_details.map(async (v)=>{
+            const [ordDetails] = await  db.query(sql_ordDetails,[timestamp, v.quantity, v.pid, v.price])
+        })
+    )
 
-    // const sql_ordDetails = `INSERT INTO \`order_details\`( \`oid\`, \`quantity\`, \`pid\`, \`price\`, \`customer_name\`, \`customer_phone\`, \`customer_address\`, \`payment\`, \`delivery\`, \`coupon\`, \`created_at\`) VALUES ('?','?','?','?','?','?','?','?','?','?','?')`
+    // 刪除購物車裡結帳的商品
+    const pidArray = cartData?.map((v,i)=>{
+        return cartData[i].pid
+    })
+    const sql_deleted = 'DELETE FROM cart WHERE pid IN (?) AND member_id = ?';
+    const [deleted] = await db.query(sql_deleted, [pidArray, member_id]);
+    res.json(ord)
+
 })
+
+//訂單summary資料
+router.get('/order', async(req,res)=>{
+    const member_id = 'wayz'
+    const sql = `SELECT * FROM \`order_summary\` WHERE \`member_id\`=? ORDER BY \`created_at\` DESC`
+    const [data] = await db.query(sql, [member_id])
+    res.json(data[0])
+})
+
+//訂單details資料
+router.get('/orderDetails', async(req,res)=>{
+    const member_id = 'wayz'
+    const sql = `SELECT * FROM \`order_details\` WHERE \`oid\`=? ORDER BY \`created_at\` DESC`
+    const [data] = await db.query(sql, [member_id])
+    res.json(data[0])
+})
+
 
 // 動態路由來抓類別資料
 router.post('/:category',async (req,res)=>{
