@@ -318,15 +318,15 @@ router.get("/coupons", async (req, res) => {
 
   const member_id = res.locals.jwtData.id;
 
-  const sql =
-    "SELECT c.coupon_name, c.coupon_value, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.member_id=?";
+  const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
+    AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.member_id=?`;
   const [rows] = await db.query(sql, [member_id]);
 
   if (!rows.length) {
     return res.redirect(req.baseUrl);
   }
 
-  res.json(rows[0]);
+  res.json(rows);
 });
 
 module.exports = router;
