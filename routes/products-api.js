@@ -195,16 +195,21 @@ router.delete('/wannaBuy', async(req,res)=>{
 // 送出訂單
 router.post('/order',async(req,res)=>{
     const member_id = 'wayz'
-    const {cartData, total, status} = req.body.requestData;
-    const sql_ord = `INSERT INTO \`order_summary\`(\`oid\`,\`member_id\`, \`total\`, \`status\`) VALUES (?,?,?,?)`
-    const timestamp = new Date().getTime().toString();
-    const [ord] = await db.query(sql_ord,[timestamp, member_id, total, status])
-    const pidArray = cartData?.map((v,i)=>{
-        return cartData[i].pid
-    })
-    const sql_deleted = 'DELETE FROM cart WHERE pid IN (?) AND member_id = ?';
-    const [deleted] = await db.query(sql_deleted, [pidArray, member_id]);
-    res.json(ord)
+    const {cartData, customerData, total, status} = req.body.requestData;
+    console.log(customerData.customer_name);
+    // const sql_ord = `INSERT INTO \`order_summary\`(\`oid\`,\`member_id\`, \`total\`, \`status\`) VALUES (?,?,?,?)`
+    // const sql_ord = `INSERT INTO \`order_summary\`(\`oid\`, \`member_id\`, \`total\`, \`customer_name\`, \`customer_phone\`, \`customer_address\`, \`payment\`, \`delivery\`, \`coupon\`, \`created_at\`, \`status\`) VALUES (?,?,?,?,?,?,?,?,?,NOW(),?)`
+    // const sql_ordDetails = `INSERT INTO \`order_details\`(\`odid\`, \`oid\`, \`quantity\`, \`pid\`, \`price\`) VALUES ('[value-1]','[value-2]','[value-3]','[value-4]','[value-5]')`
+    // const timestamp = new Date().getTime().toString();
+    // const [ord] = await db.query(sql_ord,[timestamp, member_id, total, customer_name, customer_phone, customer_address, payment, delivery, coupon, status])
+
+    //刪除購物車裡結帳的商品
+    // const pidArray = cartData?.map((v,i)=>{
+    //     return cartData[i].pid
+    // })
+    // const sql_deleted = 'DELETE FROM cart WHERE pid IN (?) AND member_id = ?';
+    // const [deleted] = await db.query(sql_deleted, [pidArray, member_id]);
+    // res.json(ord)
 
     // const sql_ordDetails = `INSERT INTO \`order_details\`( \`oid\`, \`quantity\`, \`pid\`, \`price\`, \`customer_name\`, \`customer_phone\`, \`customer_address\`, \`payment\`, \`delivery\`, \`coupon\`, \`created_at\`) VALUES ('?','?','?','?','?','?','?','?','?','?','?')`
 })
