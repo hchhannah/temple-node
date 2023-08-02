@@ -292,7 +292,11 @@ router.post('/:category',async (req,res)=>{
             page: page,
             totalPages: totalPages,
         }
-        let output = {data, pagination} 
+        const success ={success: totalRows[0]['COUNT(1)']}
+        let output = {data, pagination, success} 
+        res.json(output)
+    }else{
+        const output = {success:0}
         res.json(output)
     }
     
