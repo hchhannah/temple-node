@@ -236,7 +236,7 @@ router.get("/personalinfo", async (req, res) => {
   res.json(rows[0]);
 });
 
-//會員資料 抓資料看這個
+//會員資料 (修改更新欄位)
 
 router.put("/personalinfo", async (req, res) => {
   const output = {
@@ -298,6 +298,35 @@ router.put("/personalinfo", async (req, res) => {
     // 資料庫更新出錯
     return res.status(500).json({ error: "資料庫更新出錯" });
   }
+});
+
+router.get("/coupons", async (req, res) => {
+  // let { sid } = req.params;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  const [rows] = await db.query(`SELECT * FROM members WHERE member_id=?`, [
+    member_id,
+  ]);
+
+  if (!rows.length) {
+    return res.redirect(req.baseUrl);
+  }
+
+  res.json(rows[0]);
 });
 
 module.exports = router;
