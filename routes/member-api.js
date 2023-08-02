@@ -319,7 +319,7 @@ router.get("/coupons", async (req, res) => {
   const member_id = res.locals.jwtData.id;
 
   const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
-    AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.member_id=?`;
+    AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.member_id=?  ORDER BY cs.expiration_date ASC`;
   const [rows] = await db.query(sql, [member_id]);
 
   if (!rows.length) {
@@ -327,6 +327,14 @@ router.get("/coupons", async (req, res) => {
   }
 
   res.json(rows);
+});
+
+//上傳照片測試
+router.post("/chnageImage", upload.single("preImg"), async (req, res) => {
+  const image = req.file.filename;
+  const sql = "UPDATE `members` SET `member_profile`=? WHERE `account`=?";
+  const [rows] = await db.query(sql, [image, res.locals.jwtData.account]);
+  res.json(req.file);
 });
 
 module.exports = router;
