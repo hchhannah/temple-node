@@ -4,55 +4,7 @@ const router = express.Router();
 const db = require(__dirname+'/../modules/mysql2');
 const upload = require(__dirname+'/../modules/img-upload.js');
 const multipartParser = upload.none();
-
 // get(render) put(update) delete post
-
-
-// const getListData = async (req)=>{
-//     let output = {
-//       redirect: '',
-//       totalRows:0, 
-//       perPage: 25, 
-//       totalPages: 0, 
-//       page: 1,
-//       rows: []
-//     }
-//     const perPage = 25;
-//     let keyword = req.query.keyword || '';
-//     let page = req.query.page ? parseInt(req.query.page) : 1;
-//     if(!page || page<1) {
-//       output.redirect = req.baseUrl;
-//       return output;
-//     };
-  
-//     let where = ' WHERE 1 ';
-//     if(keyword) {
-//       const kw_escaped = db.escape('%'+keyword+'%');
-//       where += ` AND ( 
-//         \`name\` LIKE ${kw_escaped} 
-//         OR
-//         \`address\` LIKE ${kw_escaped}
-//         )
-//       `;
-//     }
-  
-//     const t_sql = `SELECT COUNT(1) totalRows FROM address_book ${where}`;
-//     const [[{totalRows}]] = await db.query(t_sql);
-//     let totalPages = 0;
-//     let rows = [];
-//     if(totalRows){
-//       totalPages = Math.ceil(totalRows/perPage);
-//       if(page > totalPages) {
-//         output.redirect = req.baseUrl + '?page=' + totalPages;
-//         return output;
-//       };
-//       const sql = ` SELECT * FROM address_book ${where} LIMIT ${perPage*(page-1)}, ${perPage}`;
-//       [rows] = await db.query(sql);
-      
-//     }
-//     output = {...output, totalRows, perPage, totalPages, page, rows, keyword};
-//     return output;
-//   }
 
 // 商品首頁輪播熱銷TOP10
 router.post('/', async (req, res) => {
@@ -240,6 +192,22 @@ router.delete('/wannaBuy', async(req,res)=>{
     res.json(deleted)
 })
 
+// 送出訂單
+router.post('/order',async(req,res)=>{
+    const member_id = 'wayz'
+    const {cartData, total, status} = req.body.requestData;
+    const sql_ord = `INSERT INTO \`order_summary\`(\`oid\`,\`member_id\`, \`total\`, \`status\`) VALUES (?,?,?,?)`
+    const timestamp = new Date().getTime().toString();
+    const [ord] = await db.query(sql_ord,[timestamp, member_id, total, status])
+    const pidArray = cartData?.map((v,i)=>{
+        return cartData[i].pid
+    })
+    const sql_deleted = 'DELETE FROM cart WHERE pid IN (?) AND member_id = ?';
+    const [deleted] = await db.query(sql_deleted, [pidArray, member_id]);
+    res.json(ord)
+
+    // const sql_ordDetails = `INSERT INTO \`order_details\`( \`oid\`, \`quantity\`, \`pid\`, \`price\`, \`customer_name\`, \`customer_phone\`, \`customer_address\`, \`payment\`, \`delivery\`, \`coupon\`, \`created_at\`) VALUES ('?','?','?','?','?','?','?','?','?','?','?')`
+})
 
 // 動態路由來抓類別資料
 router.post('/:category',async (req,res)=>{
@@ -302,7 +270,6 @@ router.post('/:category',async (req,res)=>{
     
     
 })
-
 
 // 動態路由來抓商品詳細資料
 router.get('/:category/:pid', async (req, res) => {
