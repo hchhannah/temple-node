@@ -79,6 +79,20 @@ router.get('/count', async (req, res) => {
     res.json(data[0]['COUNT(1)'])
 });
   
+
+// 刪除喜好商品
+router.get('/favoriteMatch', async (req, res) => {
+    const member_id = 'wayz';
+    // const {pid} = req.body.requestData;  
+    const sql = `SELECT * FROM \`like_products\` WHERE \`member_id\`=?`
+    const [data] = await db.query(sql,[member_id])
+    const pidArr = data.map((v,i)=>{
+        return {pid: v.pid}
+    })
+    res.json(pidArr)
+})
+
+
 // 購物車內容
 router.get('/cart',async(req,res)=>{
     const member_id = 'wayz'
@@ -133,6 +147,17 @@ router.post('/cart', async (req, res) => {
     }
 })
 
+// 加入喜好商品
+router.post('/favorite', async (req, res) => {
+    const member_id = 'wayz';
+    const {pid} = req.body.requestData;  
+    
+    const sql = `INSERT INTO \`like_products\`(\`member_id\`, \`pid\`, \`created_at\`) VALUES (?,?,NOW())`
+    const [data] = await db.query(sql,[member_id, pid])
+
+    res.json(data)
+})
+
 //加入下次再買
 router.post('/wannaBuy', async (req, res) => {
     const member_id = 'wayz'
@@ -183,6 +208,17 @@ router.delete('/cart', async(req,res)=>{
 
 })
 
+// 刪除喜好商品
+router.delete('/favorite', async (req, res) => {
+    const member_id = 'wayz';
+    const {pid} = req.body.requestData;  
+    
+    const sql = `DELETE FROM \`like_products\` WHERE \`pid\`=? AND \`member_id\`=?`
+    const [data] = await db.query(sql,[pid, member_id])
+
+    res.json(data)
+})
+
 // 從下次再買刪除
 router.delete('/wannaBuy', async(req,res)=>{
     const member_id = 'wayz'
@@ -191,7 +227,6 @@ router.delete('/wannaBuy', async(req,res)=>{
     const[deleted] = await db.query(sql_delete,[pid, member_id]) 
     res.json(deleted)
 })
-
 
 //訂單summary資料
 router.get('/order', async(req,res)=>{
@@ -235,7 +270,6 @@ router.post('/order',async(req,res)=>{
 
 })
 
-
 //訂單details資料
 router.get('/orderDetails', async(req,res)=>{
     const member_id = 'wayz'
@@ -249,7 +283,6 @@ router.get('/orderDetails', async(req,res)=>{
     
     res.json(data)
 })
-
 
 // 動態路由來抓類別資料
 router.post('/:category',async (req,res)=>{
