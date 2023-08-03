@@ -192,27 +192,36 @@ router.delete('/wannaBuy', async(req,res)=>{
     res.json(deleted)
 })
 
+
+//訂單summary資料
+router.get('/order', async(req,res)=>{
+    const member_id = 'wayz'
+    const sql = `SELECT * FROM \`order_summary\` WHERE \`member_id\`=? ORDER BY \`created_at\` DESC`
+    const [data] = await db.query(sql, [member_id])
+    res.json(data)
+})
+
 // 送出訂單
 router.post('/order',async(req,res)=>{
     const member_id = 'wayz'
     const {cartData, customerData, total, status} = req.body.requestData;
 
     // for order_summary
-    const{customer_name, customer_phone, customer_address, payment, delivery, coupon} = customerData
+    const{customer_name, customer_phone, customer_email, customer_address, payment, delivery, invoice, coupon} = customerData
     // Insert into order_summary
-    const sql_ord = `INSERT INTO \`order_summary\`(\`oid\`, \`member_id\`, \`total\`, \`customer_name\`, \`customer_phone\`, \`customer_address\`, \`payment\`, \`delivery\`, \`coupon\`, \`created_at\`, \`status\`) VALUES (?,?,?,?,?,?,?,?,?,NOW(),?)`
+    const sql_ord = `INSERT INTO \`order_summary\`(\`oid\`, \`member_id\`, \`total\`, \`customer_name\`, \`customer_email\`, \`customer_phone\`, \`customer_address\`, \`payment\`, \`delivery\`, \`invoice\`, \`coupon\`, \`created_at\`, \`status\`) VALUES (?,?,?,?,?,?,?,?,?,?,?,NOW(),?)`
     // timestamp 當訂單編號
     const timestamp = new Date().getTime().toString();
-    const [ord] = await db.query(sql_ord,[timestamp, member_id, total, customer_name, customer_phone, customer_address, payment, delivery, coupon, status])
+    const [ord] = await db.query(sql_ord,[timestamp, member_id, total, customer_name, customer_email, customer_phone, customer_address, payment, delivery, invoice, coupon, status])
     
     // Insert into order_details
-    const sql_ordDetails = `INSERT INTO \`order_details\`( \`oid\`, \`quantity\`, \`pid\`, \`price\`) VALUES (?,?,?,?)`
+    const sql_ordDetails = `INSERT INTO \`order_details\`( \`oid\`, \`quantity\`, \`pid\`, \`product_price\`) VALUES (?,?,?,?)`
     const order_details = cartData.map((v)=>{
-        return  { quantity: v.quantity, pid: v.pid, price: v.product_price }
+        return  { quantity: v.quantity, pid: v.pid, product_price: v.product_price }
     })
     Promise.all(
         order_details.map(async (v)=>{
-            const [ordDetails] = await  db.query(sql_ordDetails,[timestamp, v.quantity, v.pid, v.price])
+            const [ordDetails] = await  db.query(sql_ordDetails,[timestamp, v.quantity, v.pid, v.product_price])
         })
     )
 
@@ -226,20 +235,19 @@ router.post('/order',async(req,res)=>{
 
 })
 
-//訂單summary資料
-router.get('/order', async(req,res)=>{
-    const member_id = 'wayz'
-    const sql = `SELECT * FROM \`order_summary\` WHERE \`member_id\`=? ORDER BY \`created_at\` DESC`
-    const [data] = await db.query(sql, [member_id])
-    res.json(data[0])
-})
 
 //訂單details資料
 router.get('/orderDetails', async(req,res)=>{
     const member_id = 'wayz'
-    const sql = `SELECT * FROM \`order_details\` WHERE \`oid\`=? ORDER BY \`created_at\` DESC`
-    const [data] = await db.query(sql, [member_id])
-    res.json(data[0])
+    // 訂單編號
+    const sql_oid = `SELECT \`oid\` FROM \`order_summary\` WHERE \`member_id\` = ? ORDER BY \`created_at\` DESC`
+    const [oid] = await db.query(sql_oid,[member_id])
+    // 根據訂單編號去篩選產品資料
+    // 根據pid篩選product_name, image
+    const sql = `SELECT \`o\`.*, \`p\`.\`product_name\`, \`p\`.\`image\` FROM \`order_details\` o JOIN \`products\` p ON o.\`pid\` = p.pid WHERE o.oid=?;`
+    const [data] = await db.query(sql, [oid[0].oid])
+    
+    res.json(data)
 })
 
 
@@ -264,7 +272,8 @@ router.post('/:category',async (req,res)=>{
         \`product_name\` LIKE ${kw_escaped} 
         )
         `;
-    }    
+    }
+        
     // totalRows (總共幾筆)
     const sql_totalRows =   `SELECT COUNT(1) FROM \`products\` ${where}`
     const [totalRows] = await db.query(sql_totalRows);
@@ -284,7 +293,6 @@ router.post('/:category',async (req,res)=>{
             redirect.redirect = `${req.baseUrl}/${category}?page=${totalPages}`;
             return res.json(redirect);
           }
-
        
         // SELECT 商品資料
         const sql =   `SELECT * FROM \`products\` ${where} ORDER BY ${orderBy} ${sort}  LIMIT ${perPage*(page-1)}, ${perPage}`
