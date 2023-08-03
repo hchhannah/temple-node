@@ -329,12 +329,50 @@ router.get("/coupons", async (req, res) => {
   res.json(rows);
 });
 
+// 讀出照片
 //上傳照片測試
-router.post("/chnageImage", upload.single("preImg"), async (req, res) => {
+
+router.post("/changeImage", upload.single("preImg"), async (req, res) => {
+  // const output = {
+  //   success: false,
+  //   code: 0,
+  //   error: "",
+  // };
+
+  // if (!res.locals.jwtData) {
+  //   output.error = "沒有驗證";
+  //   return res.json(output);
+  // } else {
+  //   output.jwtData = res.locals.jwtData; // 測試用
+  // }
+
+  // const member_id = res.locals.jwtData.id;
   const image = req.file.filename;
-  const sql = "UPDATE `members` SET `member_profile`=? WHERE `account`=?";
-  const [rows] = await db.query(sql, [image, res.locals.jwtData.account]);
+  const sql = "UPDATE `members` SET `member_profile`=? WHERE `member_id`=?";
+  const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
   res.json(req.file);
+});
+
+// 讀出照片
+router.get("/changeImage", upload.single("preImg"), async (req, res) => {
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+  // const image = req.file.filename;
+  const sql = `SELECT member_profile FROM members WHERE member_id=?`;
+  const [rows] = await db.query(sql, [member_id]);
+  res.json(rows[0]);
 });
 
 module.exports = router;
