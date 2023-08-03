@@ -7,6 +7,8 @@ const multipartParser = upload.none();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
+const fs = require("fs");
+const path = require("path");
 
 router.use((req, res, next) => {
   res.locals.title = "會員資料 | " + res.locals.title;
@@ -330,9 +332,30 @@ router.get("/coupons", async (req, res) => {
 });
 
 // 讀出照片
+router.get("/profilePhoto", upload.single("preImg"), async (req, res) => {
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+  // const image = req.file.filename;
+  const sql = `SELECT member_profile FROM members WHERE member_id=?`;
+  const [rows] = await db.query(sql, [member_id]);
+  res.json(rows[0]);
+});
+
 //上傳照片測試
 
-router.post("/changeImage", upload.single("preImg"), async (req, res) => {
+router.post("/profilePhoto", upload.single("preImg"), async (req, res) => {
   // const output = {
   //   success: false,
   //   code: 0,
@@ -353,8 +376,8 @@ router.post("/changeImage", upload.single("preImg"), async (req, res) => {
   res.json(req.file);
 });
 
-// 讀出照片
-router.get("/changeImage", upload.single("preImg"), async (req, res) => {
+// 照片刪除
+router.delete("/profilePhoto", async (req, res) => {
   const output = {
     success: false,
     code: 0,
@@ -367,12 +390,33 @@ router.get("/changeImage", upload.single("preImg"), async (req, res) => {
   } else {
     output.jwtData = res.locals.jwtData; // 測試用
   }
-
   const member_id = res.locals.jwtData.id;
-  // const image = req.file.filename;
-  const sql = `SELECT member_profile FROM members WHERE member_id=?`;
-  const [rows] = await db.query(sql, [member_id]);
-  res.json(rows[0]);
+
+  try {
+    // 先從資料庫中查詢個人檔案照片記錄
+    const selectSql = `SELECT member_profile FROM members WHERE member_id=?`;
+    const [rows] = await db.query(selectSql, [member_id]);
+    const filename = rows[0].member_profile;
+
+    // 刪除資料庫中的個人檔案照片記錄
+    const updateSql = `UPDATE members SET member_profile=null WHERE member_id=?`;
+    await db.query(updateSql, [member_id]);
+
+    // // 從儲存位置刪除實際的圖片檔案
+    if (filename) {
+      // const imagePath = path.join(__dirname, "..", "public", "img", filename);
+      const imagePath = path.join("public", "img", filename);
+
+      fs.unlinkSync(imagePath);
+    }
+
+    res.json({ success: true, message: "成功刪除個人檔案照片。" });
+  } catch (error) {
+    console.error("刪除個人檔案照片時出錯:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "刪除個人檔案照片時出錯。" });
+  }
 });
 
 module.exports = router;
