@@ -482,15 +482,15 @@ router.post("/dailySignIn", multipartParser, async (req, res) => {
   }
   const member_id = res.locals.jwtData.id;
 
-  // 檢查今天是否已經簽到
-  const checkSignInQuery =
-    "SELECT COUNT(*) AS count FROM `daily_signins` WHERE `member_id` = ? AND DATE(`signin_date`) = CURDATE()";
-  const [checkResult] = await db.query(checkSignInQuery, [member_id]);
-  const alreadySignedIn = checkResult[0].count > 0;
+  // // 檢查今天是否已經簽到
+  // const checkSignInQuery =
+  //   "SELECT COUNT(*) AS count FROM `daily_signins` WHERE `member_id` = ? AND DATE(`signin_date`) = CURDATE()";
+  // const [checkResult] = await db.query(checkSignInQuery, [member_id]);
+  // const alreadySignedIn = checkResult[0].count > 0;
 
-  if (alreadySignedIn) {
-    return res.status(409).json({ error: "今天已經簽到過囉!" });
-  }
+  // if (alreadySignedIn) {
+  //   return res.status(409).json({ error: "今天已經簽到過囉!" });
+  // }
 
   try {
     // Get today's date
@@ -505,18 +505,22 @@ router.post("/dailySignIn", multipartParser, async (req, res) => {
     console.log(formattedExpirationDate);
 
     // Insert into daily_signins and coupons_status in a single query
-    const insertQuery = `INSERT INTO daily_signins (member_id, signin_date)
-      VALUES (?, NOW()); INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date)
-      VALUES (1, ?, '未使用', ?, ?);`;
+    const signInSql = `INSERT INTO daily_signins (member_id, signin_date) VALUES (?, NOW());`;
+    const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (1, ?, '未使用', ?, ?);`;
 
-    const [result] = await db.query(insertQuery, [
+    const [signInResult] = await db.query(signInSql, [
       member_id, // Placeholder for member_id in daily_signins table
+    ]);
+    const [couponResult] = await db.query(couponSql, [
       member_id, // Placeholder for member_id in coupons_status table
       startDate,
       formattedExpirationDate,
     ]);
 
     // Send the response
+    console.log(`signInResult:`, signInResult);
+    console.log(`couponResult:`, couponResult);
+
     res.json({
       success: true,
       message: "簽到成功，並獲得優惠券。",
