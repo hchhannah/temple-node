@@ -5,7 +5,7 @@ const router = express.Router();
 const upload = require(__dirname + '/../modules/img-upload');
 const multipartParser = upload.none();
 
-router.get("/", async (req, res) =>{
+router.get("/onlineQuiz", async (req, res) =>{
     let output = {
         redirect : '',
         totalRows :0, 
@@ -21,7 +21,7 @@ router.get("/", async (req, res) =>{
         output.redirect = req.baseUrl;
         return res.json(output);
     };
-    const t_sql = `SELECT COUNT(1) totalRows FROM Online_Question ${where}`;
+    const t_sql = `SELECT COUNT(1) totalRows FROM Online_Question`;
     const [[{totalRows}]] = await db.query(t_sql);
     let totalPages = 0;
     let rows = [];
@@ -31,17 +31,12 @@ router.get("/", async (req, res) =>{
             output.redirect = req.baseUrl + '?page=' + totalPages;
             return res.json(output);
         };
-        const sql = ` SELECT * FROM Online_Question ${where} LIMIT ${perPage * (page-1)}, ${perPage} `;
+        const sql = ` SELECT * FROM Online_Question LIMIT ${perPage * (page-1)}, ${perPage} `;
         [rows] = await db.query(sql);
     }
     output = {...output, totalRows, perPage, totalPages, page, rows};
     return res.json(output);
 });
 
-// 測試求籤
-router.get("/", async (req, res) => {
-    const [rows] = await db.query("SELECT * FROM `Love_Light` LIMIT 10");
-    res.json(rows);
-  });
 
 module.exports = router;
