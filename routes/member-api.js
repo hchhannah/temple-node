@@ -7,6 +7,8 @@ const multipartParser = upload.none();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
+const fs = require("fs");
+const path = require("path");
 
 router.use((req, res, next) => {
   res.locals.title = "會員資料 | " + res.locals.title;
@@ -171,15 +173,15 @@ router.post("/signUp", multipartParser, async (req, res) => {
   // email 不存在，執行插入操作
   const sql =
     "INSERT INTO `members`" +
-    "(`member_id`, `member_account`, `member_password`,`member_name`, `member_address`, `member_birthday`, `member_forum_name`, `member_profile`)" +
-    " VALUES ( ?, ?, ?, ?, ?, ?, null,null)";
+    "( `member_account`, `member_password`,`member_name`, `member_address`, `member_birthday`, `member_forum_name`, `member_profile`)" +
+    " VALUES ( ?, ?, ?, ?, ?, null,null)";
 
-  function generateMemberId() {
-    // Generate a version 4 UUID (random UUID)
-    return uuidv4();
-  }
+  // function generateMemberId() {
+  //   // Generate a version 4 UUID (random UUID)
+  //   return uuidv4();
+  // }
 
-  let member_id = generateMemberId();
+  // let member_id = generateMemberId();
 
   // 0728 讓生日格式一致
   let birthday = dayjs(req.body.member_birthday);
@@ -190,7 +192,7 @@ router.post("/signUp", multipartParser, async (req, res) => {
   }
 
   const [result] = await db.query(sql, [
-    member_id,
+    // member_id,
     req.body.member_account,
     password,
     req.body.member_name,
@@ -225,9 +227,9 @@ router.get("/personalinfo", async (req, res) => {
 
   const member_id = res.locals.jwtData.id;
 
-  const [rows] = await db.query(`SELECT * FROM members WHERE member_id=?`, [
-    member_id,
-  ]);
+  const sql = "SELECT * FROM members WHERE member_id=?";
+
+  const [rows] = await db.query(sql, [member_id]);
 
   if (!rows.length) {
     return res.redirect(req.baseUrl);
@@ -318,15 +320,228 @@ router.get("/coupons", async (req, res) => {
 
   const member_id = res.locals.jwtData.id;
 
-  const [rows] = await db.query(`SELECT * FROM members WHERE member_id=?`, [
-    member_id,
-  ]);
+  const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
+    AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.member_id=?  ORDER BY cs.expiration_date ASC`;
+  const [rows] = await db.query(sql, [member_id]);
 
   if (!rows.length) {
     return res.redirect(req.baseUrl);
   }
 
+  res.json(rows);
+});
+
+// 讀出照片
+router.get("/profilePhoto", upload.single("preImg"), async (req, res) => {
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+  // const image = req.file.filename;
+  const sql = `SELECT member_profile FROM members WHERE member_id=?`;
+  const [rows] = await db.query(sql, [member_id]);
   res.json(rows[0]);
+});
+
+//上傳照片測試
+
+router.post("/profilePhoto", upload.single("preImg"), async (req, res) => {
+  // const output = {
+  //   success: false,
+  //   code: 0,
+  //   error: "",
+  // };
+
+  // if (!res.locals.jwtData) {
+  //   output.error = "沒有驗證";
+  //   return res.json(output);
+  // } else {
+  //   output.jwtData = res.locals.jwtData; // 測試用
+  // }
+
+  // const member_id = res.locals.jwtData.id;
+  const image = req.file.filename;
+  const sql = "UPDATE `members` SET `member_profile`=? WHERE `member_id`=?";
+  const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
+  res.json(req.file);
+});
+
+// 照片刪除
+router.delete("/profilePhoto", async (req, res) => {
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+  const member_id = res.locals.jwtData.id;
+
+  try {
+    // 先從資料庫中查詢個人檔案照片記錄
+    const selectSql = `SELECT member_profile FROM members WHERE member_id=?`;
+    const [rows] = await db.query(selectSql, [member_id]);
+    const filename = rows[0].member_profile;
+
+    // 刪除資料庫中的個人檔案照片記錄
+    const updateSql = `UPDATE members SET member_profile=null WHERE member_id=?`;
+    await db.query(updateSql, [member_id]);
+
+    // // 從儲存位置刪除實際的圖片檔案
+    if (filename) {
+      // const imagePath = path.join(__dirname, "..", "public", "img", filename);
+      const imagePath = path.join("public", "img", filename);
+
+      fs.unlinkSync(imagePath);
+    }
+
+    res.json({ success: true, message: "成功刪除個人檔案照片。" });
+  } catch (error) {
+    console.error("刪除個人檔案照片時出錯:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "刪除個人檔案照片時出錯。" });
+  }
+});
+
+//每日簽到 讀
+router.get("/dailySignIn", async (req, res) => {
+  // let { sid } = req.params;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  const sql =
+    "SELECT * FROM `daily_signins` WHERE member_id=? ORDER BY `daily_signins`.`signin_date` DESC";
+
+  const [rows] = await db.query(sql, [member_id]);
+
+  if (!rows.length) {
+    // If the result is empty, send the "尚未簽到記錄" message
+    const output = {
+      success: true,
+      data: "尚未簽到記錄",
+    };
+    return res.json(output);
+  }
+
+  res.json(rows);
+});
+//每日簽到 送
+router.post("/dailySignIn", multipartParser, async (req, res) => {
+  // 0804 檢查 是否已簽到
+  // const checkEmailQuery =
+  //   "SELECT COUNT(*) AS count FROM `members` WHERE `member_account` = ?";
+  // const [emailResult] = await db.query(checkEmailQuery, [
+  //   req.body.member_account,
+  // ]);
+  // const emailExists = emailResult[0].count > 0;
+
+  // if (emailExists) {
+  //   return res.status(409).json({ error: "該 email 已被使用。" });
+  // }
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+  const member_id = res.locals.jwtData.id;
+
+  // 檢查今天是否已經簽到
+  const checkSignInQuery =
+    "SELECT COUNT(*) AS count FROM `daily_signins` WHERE `member_id` = ? AND DATE(`signin_date`) = CURDATE()";
+  const [checkResult] = await db.query(checkSignInQuery, [member_id]);
+  const alreadySignedIn = checkResult[0].count > 0;
+
+  if (alreadySignedIn) {
+    return res.status(409).json({ error: "今天已經簽到過囉!" });
+  }
+
+  try {
+    // Get today's date
+    const today = new Date();
+    const startDate = today.toISOString().slice(0, 10);
+
+    // Calculate expiration date (30 days from today)
+    const expirationDate = new Date(today);
+    expirationDate.setDate(expirationDate.getDate() + 30);
+    const formattedExpirationDate = expirationDate.toISOString().slice(0, 10);
+
+    // Insert into daily_signins and coupons_status in a single query
+    const insertQuery = `
+      INSERT INTO daily_signins (member_id, signin_date)
+      VALUES (?, NOW());
+
+      INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date)
+      VALUES (1, ?, '未使用', ?, ?);
+    `;
+
+    const [result] = await db.query(insertQuery, [
+      member_id, // Placeholder for member_id in daily_signins table
+      member_id, // Placeholder for member_id in coupons_status table
+      startDate,
+      formattedExpirationDate,
+    ]);
+
+    // Send the response
+    res.json({
+      success: true,
+      message: "簽到成功，並獲得優惠券。",
+    });
+  } catch (error) {
+    // Handle the error
+    res.status(500).json({
+      success: false,
+      message: "簽到失敗，請稍後再試。",
+    });
+  }
+  // // 符合條件，可以簽到
+  // const sql =
+  //   "INSERT INTO `daily_signins`" +
+  //   "(`member_id`,`signin_date`)" +
+  //   " VALUES ( ?, now())";
+
+  // const [result] = await db.query(sql, [member_id]);
+
+  // res.json({
+  //   result,
+  //   postData: req.body,
+  // });
 });
 
 module.exports = router;
