@@ -502,14 +502,12 @@ router.post("/dailySignIn", multipartParser, async (req, res) => {
     expirationDate.setDate(expirationDate.getDate() + 30);
     const formattedExpirationDate = expirationDate.toISOString().slice(0, 10);
 
-    // Insert into daily_signins and coupons_status in a single query
-    const insertQuery = `
-      INSERT INTO daily_signins (member_id, signin_date)
-      VALUES (?, NOW());
+    console.log(formattedExpirationDate);
 
-      INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date)
-      VALUES (1, ?, '未使用', ?, ?);
-    `;
+    // Insert into daily_signins and coupons_status in a single query
+    const insertQuery = `INSERT INTO daily_signins (member_id, signin_date)
+      VALUES (?, NOW()); INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date)
+      VALUES (1, ?, '未使用', ?, ?);`;
 
     const [result] = await db.query(insertQuery, [
       member_id, // Placeholder for member_id in daily_signins table
@@ -525,6 +523,7 @@ router.post("/dailySignIn", multipartParser, async (req, res) => {
     });
   } catch (error) {
     // Handle the error
+    console.error("Error executing the query:", error);
     res.status(500).json({
       success: false,
       message: "簽到失敗，請稍後再試。",
