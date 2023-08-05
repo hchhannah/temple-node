@@ -439,7 +439,7 @@ router.get("/dailySignIn", async (req, res) => {
   const member_id = res.locals.jwtData.id;
 
   const sql =
-    "SELECT * FROM `daily_signins` WHERE member_id=? ORDER BY `daily_signins`.`signin_date` DESC";
+    "SELECT * FROM `daily_signins` WHERE member_id=? ORDER BY `daily_signins`.`signin_date` DESC LIMIT 10";
 
   const [rows] = await db.query(sql, [member_id]);
 
