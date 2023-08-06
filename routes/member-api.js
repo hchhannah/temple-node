@@ -456,18 +456,6 @@ router.get("/dailySignIn", async (req, res) => {
 });
 //每日簽到 送
 router.post("/dailySignIn", multipartParser, async (req, res) => {
-  // 0804 檢查 是否已簽到
-  // const checkEmailQuery =
-  //   "SELECT COUNT(*) AS count FROM `members` WHERE `member_account` = ?";
-  // const [emailResult] = await db.query(checkEmailQuery, [
-  //   req.body.member_account,
-  // ]);
-  // const emailExists = emailResult[0].count > 0;
-
-  // if (emailExists) {
-  //   return res.status(409).json({ error: "該 email 已被使用。" });
-  // }
-
   const output = {
     success: false,
     code: 0,
@@ -502,16 +490,59 @@ router.post("/dailySignIn", multipartParser, async (req, res) => {
     expirationDate.setDate(expirationDate.getDate() + 30);
     const formattedExpirationDate = expirationDate.toISOString().slice(0, 10);
 
-    console.log(formattedExpirationDate);
-
     // Insert into daily_signins and coupons_status in a single query
     const signInSql = `INSERT INTO daily_signins (member_id, signin_date) VALUES (?, NOW());`;
-    const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (1, ?, '未使用', ?, ?);`;
+    const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (?, ?, '未使用', ?, ?);`;
+
+    const { coupon_value } = req.body;
+    //檢查coupon value
+
+    switch (coupon_value) {
+      case "10":
+        // couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (1, ?, '未使用', ?, ?);`;
+        coupon_id = "1";
+        break;
+      case "20":
+        // couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (2, ?, '未使用', ?, ?);`;
+        coupon_id = "2";
+        break;
+      case "30":
+        coupon_id = "3";
+        break;
+      case "40":
+        coupon_id = "4";
+        break;
+      case "50":
+        coupon_id = "5";
+        break;
+      case "60":
+        coupon_id = "6";
+        break;
+      case "70":
+        coupon_id = "7";
+        break;
+      case "80":
+        coupon_id = "8";
+        break;
+      case "90":
+        coupon_id = "9";
+        break;
+      case "100":
+        coupon_id = "10";
+        break;
+      case "1000":
+        coupon_id = "11";
+        break;
+      // ... 其他 coupon_value 對應的寫入資料庫操作
+      default:
+        return res.status(400).json({ error: "無效的 coupon_value" });
+    }
 
     const [signInResult] = await db.query(signInSql, [
       member_id, // Placeholder for member_id in daily_signins table
     ]);
     const [couponResult] = await db.query(couponSql, [
+      coupon_id,
       member_id, // Placeholder for member_id in coupons_status table
       startDate,
       formattedExpirationDate,
@@ -520,6 +551,7 @@ router.post("/dailySignIn", multipartParser, async (req, res) => {
     // Send the response
     console.log(`signInResult:`, signInResult);
     console.log(`couponResult:`, couponResult);
+    console.log(`node檢查coupon value:`, coupon_value);
 
     res.json({
       success: true,
