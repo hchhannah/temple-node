@@ -236,6 +236,25 @@ router.get('/order', async(req,res)=>{
     res.json(data)
 })
 
+// 送出訂單更改庫存量 / 購買量
+router.put('/order', async(req,res)=>{
+    const {cartData} = req.body.requestData;
+    const details = cartData.map((v)=>{
+        return  { quantity: v.quantity, pid: v.pid }
+    })
+    const sql = `UPDATE \`products\` SET \`purchase_num\`=\`purchase_num\`+?,\`stock_num\`=\`stock_num\`-? WHERE \`pid\` =?`
+
+    Promise.all(
+        details.map(async (v)=>{
+            console.log(v);
+            const quantity = Number(v.quantity) 
+            const[data] = await db.query(sql, [quantity,quantity,v.pid])
+        })
+    )
+
+    res.json('success')
+})
+
 // 送出訂單
 router.post('/order',async(req,res)=>{
     const member_id = 'wayz'
@@ -256,7 +275,7 @@ router.post('/order',async(req,res)=>{
     })
     Promise.all(
         order_details.map(async (v)=>{
-            const [ordDetails] = await  db.query(sql_ordDetails,[timestamp, v.quantity, v.pid, v.product_price])
+            const [ordDetails] = await db.query(sql_ordDetails,[timestamp, v.quantity, v.pid, v.product_price])
         })
     )
 
@@ -376,5 +395,12 @@ router.get('/:category/:pid', async (req, res) => {
     res.json(output);
 });
 
-
+// 動態路由瀏覽量加一
+router.put('/:category/:pid', async (req, res) => {
+    const pid = req.params.pid;
+    console.log(pid);
+    const sql = `UPDATE \`products\` SET \`browse_num\` = \`browse_num\`+1 WHERE \`pid\` =?`
+    const [data] = await db.query(sql, [pid])
+    res.json(data)
+})
 module.exports = router;
