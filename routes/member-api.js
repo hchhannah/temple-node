@@ -302,7 +302,8 @@ router.put("/personalinfo", async (req, res) => {
   }
 });
 
-router.get("/coupons", async (req, res) => {
+//  優惠券 所有的
+router.get("/allCoupons", async (req, res) => {
   // let { sid } = req.params;
 
   const output = {
@@ -320,8 +321,121 @@ router.get("/coupons", async (req, res) => {
 
   const member_id = res.locals.jwtData.id;
 
+  // 自動判斷expired 並檢查是否"已使用"
+  const updateSql = `UPDATE coupons_status
+  SET usage_status = '已過期'
+  WHERE expiration_date <= CURDATE() AND usage_status != '已使用' AND member_id = ?`;
+  const [updated] = await db.query(updateSql, [member_id]);
+
   const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
-    AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.member_id=?  ORDER BY cs.expiration_date ASC`;
+    AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.member_id=?  ORDER BY cs. start_date DESC`;
+  const [rows] = await db.query(sql, [member_id]);
+
+  if (!rows.length) {
+    return res.redirect(req.baseUrl);
+  }
+
+  res.json(rows);
+});
+
+//  優惠券 可使用
+router.get("/availableCoupons", async (req, res) => {
+  // let { sid } = req.params;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  // 自動判斷expired 並檢查是否"已使用"
+  const updateSql = `UPDATE coupons_status
+  SET usage_status = '已過期'
+  WHERE expiration_date <= CURDATE() AND usage_status != '已使用' AND member_id = ?`;
+  const [updated] = await db.query(updateSql, [member_id]);
+
+  const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
+  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '可使用' AND cs.member_id=?  ORDER BY cs. start_date DESC`;
+  const [rows] = await db.query(sql, [member_id]);
+
+  if (!rows.length) {
+    return res.redirect(req.baseUrl);
+  }
+
+  res.json(rows);
+});
+
+//  優惠券 已使用
+router.get("/usedCoupons", async (req, res) => {
+  // let { sid } = req.params;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  // 自動判斷expired 並檢查是否"已使用"
+  const updateSql = `UPDATE coupons_status
+  SET usage_status = '已過期'
+  WHERE expiration_date <= CURDATE() AND usage_status != '已使用' AND member_id = ?`;
+  const [updated] = await db.query(updateSql, [member_id]);
+
+  const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
+  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '已使用' AND cs.member_id=?  ORDER BY cs. start_date DESC`;
+  const [rows] = await db.query(sql, [member_id]);
+
+  if (!rows.length) {
+    return res.redirect(req.baseUrl);
+  }
+
+  res.json(rows);
+});
+//  優惠券 已過期
+router.get("/expiredCoupons", async (req, res) => {
+  // let { sid } = req.params;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  // 自動判斷expired 並檢查是否"已使用"
+  const updateSql = `UPDATE coupons_status
+  SET usage_status = '已過期'
+  WHERE expiration_date <= CURDATE() AND usage_status != '已使用' AND member_id = ?`;
+  const [updated] = await db.query(updateSql, [member_id]);
+
+  const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
+  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '已過期' AND cs.member_id=?  ORDER BY cs. start_date DESC`;
   const [rows] = await db.query(sql, [member_id]);
 
   if (!rows.length) {
@@ -456,6 +570,7 @@ router.get("/dailySignIn", async (req, res) => {
 });
 //每日簽到 送
 router.post("/dailySignIn", multipartParser, async (req, res) => {
+  const { coupon_value } = req.body;
   const output = {
     success: false,
     code: 0,
@@ -494,7 +609,6 @@ router.post("/dailySignIn", multipartParser, async (req, res) => {
     const signInSql = `INSERT INTO daily_signins (member_id, signin_date) VALUES (?, NOW());`;
     const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (?, ?, '未使用', ?, ?);`;
 
-    const { coupon_value } = req.body;
     //檢查coupon value
 
     switch (coupon_value) {
