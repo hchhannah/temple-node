@@ -24,6 +24,7 @@ router.get("/", async (req, res) =>{
 
     //關鍵字搜尋
     let where = 'WHERE 1';
+    // let keyword = req.query.keyword || '';
     if(keyword) {
         const kw_escaped = db.escape('%'+keyword+'%')
         where += ` AND (
@@ -34,6 +35,7 @@ router.get("/", async (req, res) =>{
         `;
     }
 
+    // where += " AND `post_category` = '1'";
     const t_sql = `SELECT COUNT(1) totalRows FROM post ${where}`;
     const [[{totalRows}]] = await db.query(t_sql);
     let totalPages = 0;
@@ -54,6 +56,40 @@ router.get("/", async (req, res) =>{
     return res.json(output);
     // res.json({totalRows, perPage, totalPages, page, rows});
 });
+
+
+//抓單筆貼文
+router.get("/:post_sid", async(req, res)=>{
+
+    const output = {
+        success: false,
+        error:"",
+        row:null
+    };
+    const post_sid = parseInt(req.params.post_sid) || 0;
+    console.log(post_sid)
+    if(! post_sid){
+    //沒有sid
+    output.error = '沒有 sid !';
+        } else {
+        const sql = `SELECT * FROM post WHERE sid=${post_sid}`;
+        const [rows] = await db.query(sql);
+        rows.forEach(i => {
+            i.publish_time = dayjs(i.publish_time).format('YYYY-MM-DD-HH:mm:ss');
+        });
+        if(rows.length){
+        output.success = true;
+        output.row = rows[0];
+        } else {
+    //沒有資料
+            output.error = '沒有資料 !';
+        }
+        
+    }
+    res.json(output);
+
+    });
+    
 // router.use((req, res, next)=>{
 //     res.locals.title = '八卦版' + res.locals.title;
 //     next();
@@ -68,7 +104,7 @@ router.get("/", async (req, res) =>{
 
 // });
 
-//取得單筆資料的api
+// 取得單筆資料的api
 // router.get('/api/:sid', async(req, res)=>{
 //     const output = {
 //         success : false,
@@ -90,9 +126,9 @@ router.get("/", async (req, res) =>{
 //     rows[0].publish_time =dayjs(rows[0].publish_time).format('YYYY-MM-DD-HH-mm-ss');
 //     output.success = true;
 //     output.data = rows[0];
-    // const output = await getListData(req);
-    // output.rows.forEach(i=>{
-    // i.publish_time =dayjs(i.publish_time).format('YYYY-MM-DD-HH-mm-ss');
+//     const output = await getListData(req);
+//     output.rows.forEach(i=>{
+//     i.publish_time =dayjs(i.publish_time).format('YYYY-MM-DD-HH-mm-ss');
 // });
 // res.json(output);
 
