@@ -5,14 +5,12 @@ const db = require(__dirname+'/../modules/mysql2');
 const upload = require(__dirname+'/../modules/img-upload.js');
 const multipartParser = upload.none();
 
-router.get('/', async (req, res) => {
-    const sql_mazu = `SELECT * FROM \`worship\` WHERE \`cid\`=36`
-    const [mazu_data] = await db.query(sql_mazu)
-    const sql_love = `SELECT * FROM \`worship\` WHERE \`cid\`=37`
-    const [love_data] = await db.query(sql_love)
-    const sql_study = `SELECT * FROM \`worship\` WHERE \`cid\`=38`
-    const [study_data] = await db.query(sql_study)
-    const data =[mazu_data, love_data, study_data] 
+router.post('/', async (req, res) => {
+    const {god} = req.body.requestData
+    const sql_cid= `SELECT \`cid\` FROM \`categories\` WHERE \`category_name\` = ?`
+    const [cid] = await db.query(sql_cid, [god])
+    const sql = `SELECT * FROM \`worship\` WHERE \`cid\`=?`
+    const [data] = await db.query(sql, [cid[0].cid])
     res.json(data)
 })
 
