@@ -96,6 +96,8 @@ app.use("/forum", require(__dirname + "/routes/forum-api"));
 // 會員資料api
 app.use("/member", require(__dirname + "/routes/member-api"));
 
+app.use("/worship", require(__dirname + "/routes/worship-api"));
+
 // 定義PORT
 const port = process.env.PORT || 3000;
 
