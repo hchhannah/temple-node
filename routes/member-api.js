@@ -364,7 +364,7 @@ router.get("/availableCoupons", async (req, res) => {
   const [updated] = await db.query(updateSql, [member_id]);
 
   const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
-  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '可使用' AND cs.member_id=?  ORDER BY cs. start_date DESC`;
+  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '未使用' AND cs.member_id=?  ORDER BY cs. start_date DESC`;
   const [rows] = await db.query(sql, [member_id]);
 
   if (!rows.length) {
