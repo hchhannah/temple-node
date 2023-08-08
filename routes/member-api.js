@@ -94,7 +94,7 @@ router.use((req, res, next) => {
 //   //   res.render("members/index", output);
 // });
 
-//會員登入 - 0711  密碼比對
+// 會員登入 - 0711  密碼比對
 router.post("/login", async (req, res) => {
   const output = {
     success: false,
@@ -239,7 +239,6 @@ router.get("/personalinfo", async (req, res) => {
 });
 
 //會員資料 (修改更新欄位)
-
 router.put("/personalinfo", async (req, res) => {
   const output = {
     success: false,
@@ -445,6 +444,35 @@ router.get("/expiredCoupons", async (req, res) => {
   res.json(rows);
 });
 
+// 護身符
+router.get("/amulet", async (req, res) => {
+  // let { sid } = req.params;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  const sql = `SELECT Name FROM amulet WHERE Member_ID=? `;
+  const [rows] = await db.query(sql, [member_id]);
+
+  if (!rows.length) {
+    return res.redirect(req.baseUrl);
+  }
+
+  res.json(rows);
+});
+
 // 讀出照片
 router.get("/profilePhoto", upload.single("preImg"), async (req, res) => {
   const output = {
@@ -468,7 +496,6 @@ router.get("/profilePhoto", upload.single("preImg"), async (req, res) => {
 });
 
 //上傳照片測試
-
 router.post("/profilePhoto", upload.single("preImg"), async (req, res) => {
   // const output = {
   //   success: false,
