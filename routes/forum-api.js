@@ -105,9 +105,9 @@ res.json(output);
 });
 
 //抓各版貼文
-router.get('/:category', async (req, res) => {
+router.post('/:category', async (req, res) => {
     const postCategory = req.params.category;
-    console.log(postCategory);
+    console.log(req.body.page);
     const info = [
         {
         text: '八卦版',
@@ -136,9 +136,8 @@ router.get('/:category', async (req, res) => {
     LIMIT ?, ?`
 
     const perPage = 6;
-    const page = req.query.page || 1;
+    const page = req.body.page || 1;
     const offset = (page - 1) * perPage;
-
     const [data] = await db.query(sql,[sid+1,offset,perPage])
 
     const [totalRows] = await db.query('SELECT COUNT(*) as totalRows FROM post WHERE postcategory_sid = ?', [sid+1]);
@@ -180,6 +179,8 @@ router.get('/:category', async (req, res) => {
     //   console.error('Error executing SQL query:', error);
     //   res.status(500).json({ error: 'Internal Server Error' });
     // }
+  
+  
 
 // 取得單筆資料的api
 // router.get('/api/:sid', async(req, res)=>{
