@@ -44,6 +44,8 @@ const [result] = await db.query(sql,[
         postData: req.body
     })
 });
+
+//紅線基本基料
 router.post('/loveB-2', async (req,res)=>{
     console.log(req.body.requestData );
     const Member_ID = '12'
@@ -64,6 +66,73 @@ const [result] = await db.query(sql,[
     })
 });
 
+//護身符紅線
+router.post('/loveA-3', async (req,res)=>{
+    console.log(req.body.requestData );
+    const Member_ID = '12'
+    const Name = '紅線'
+//   const {Member_ID, Name, Sid, Datetime} = req.body.requestData   
+const sql = "INSERT INTO `Amulet`" +
+"(`Member_ID`, `Name`, `Sid`, `Datetime`)" +
+" VALUES ( ?, ?, ?, NOW())";
+console.log('r:',Member_ID);
+const [result] = await db.query(sql,[
+    Member_ID,
+    Name,
+    req.body.Sid,
+    req.body.Datetime,
+])
+    res.json({
+        result,
+        postData: req.body
+    })
+});
+
+//護身桃花枝
+router.post('/loveB-3', async (req,res)=>{
+    console.log(req.body.requestData );
+    const Member_ID = '12'
+    const Name = '桃花枝'
+//   const {Member_ID, Name, Sid, Datetime} = req.body.requestData   
+const sql = "INSERT INTO `Amulet`" +
+"(`Member_ID`, `Name`, `Sid`, `Datetime`)" +
+" VALUES ( ?, ?, ?, NOW())";
+console.log('r:',Member_ID);
+const [result] = await db.query(sql,[
+    Member_ID,
+    Name,
+    req.body.Sid,
+    req.body.Datetime,
+])
+    res.json({
+        result,
+        postData: req.body
+    })
+});
+
+//護身籤詩
+router.post('/mazu4', async (req,res)=>{
+    console.log(req.body.requestData );
+    const Member_ID = '12'
+//   const {Member_ID, Name, Sid, Datetime} = req.body.requestData   
+const sql = "INSERT INTO `Amulet`" +
+"(`Member_ID`, `Name`, `Sid`, `Datetime`)" +
+" VALUES ( ?, ?, ?, NOW())";
+console.log('r:',Member_ID);
+const [result] = await db.query(sql,[
+    Member_ID,
+    req.body.Name,
+    req.body.Sid,
+    req.body.Datetime,
+])
+    res.json({
+        result,
+        postData: req.body
+    })
+});
+
+
+//拿到姻緣燈位置座標
 router.get("/loveB-2", async (req, res) =>{
     let output = {
         redirect : '',
