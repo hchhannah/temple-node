@@ -59,7 +59,7 @@ router.get("/", async (req, res) =>{
 
 
 //抓單筆貼文
-router.get("/:post_sid", async(req, res)=>{
+router.get("/:category/:post_sid", async(req, res)=>{
 
     const output = {
         success: false,
@@ -72,8 +72,8 @@ router.get("/:post_sid", async(req, res)=>{
     //沒有sid
     output.error = '沒有 sid !';
         } else {
-        const sql = `SELECT * FROM post WHERE sid=${post_sid}`;
-        const [rows] = await db.query(sql);
+        const sql = `SELECT * FROM post WHERE sid=?`;
+        const [rows] = await db.query(sql,[post_sid]);
         rows.forEach(i => {
             i.publish_time = dayjs(i.publish_time).format('YYYY-MM-DD-HH:mm:ss');
         });
@@ -90,19 +90,96 @@ router.get("/:post_sid", async(req, res)=>{
 
     });
     
-// router.use((req, res, next)=>{
-//     res.locals.title = '八卦版' + res.locals.title;
-//     next();
-// });
+router.use((req, res, next)=>{
+    res.locals.title = '八卦版' + res.locals.title;
+    next();
+});
 
-// router.get('/api', async(req, res)=>{
-//     const output = await getListData(req);
-//     output.rows.forEach(i=>{
-//     i.publish_time =dayjs(i.publish_time).format('YYYY-MM-DD-HH-mm-ss');
-// });
-// res.json(output);
+router.get('/api', async(req, res)=>{
+    const output = await getListData(req);
+    output.rows.forEach(i=>{
+    i.publish_time =dayjs(i.publish_time).format('YYYY-MM-DD-HH-mm-ss');
+});
+res.json(output);
 
-// });
+});
+
+//抓各版貼文
+router.get('/:category', async (req, res) => {
+    const postCategory = req.params.category;
+    console.log(postCategory);
+    const info = [
+        {
+        text: '八卦版',
+        id: 'gossip',
+    },
+        {
+        text: '愛情版',
+        id: 'love',
+        
+    },
+        {
+        text: '鬼故事版',
+        id: 'ghost',
+    },
+        {
+        text: '籤詩版',
+        id: 'fortunesticks',
+    },
+]   
+    const sid = info.findIndex((v)=>v.id===postCategory)
+    
+    const sql = ` SELECT p.*, c.type_name 
+    FROM post p 
+    JOIN postcategory c ON p.postcategory_sid = c.sid 
+    WHERE p.postcategory_sid = ? 
+    LIMIT ?, ?`
+
+    const perPage = 6;
+    const page = req.query.page || 1;
+    const offset = (page - 1) * perPage;
+
+    const [data] = await db.query(sql,[sid+1,offset,perPage])
+
+    const [totalRows] = await db.query('SELECT COUNT(*) as totalRows FROM post WHERE postcategory_sid = ?', [sid+1]);
+    const totalPages = Math.ceil(totalRows[0].totalRows / perPage);
+    const output  = [data, {totalPages: totalPages}] 
+    res.json(output)
+});
+    // if (!postCategory) {
+    //   return res.status(400).json({ error: 'Missing postcategory_sid parameter' });
+    // }
+  
+    // try {
+    //   const connection = await pool.getConnection();
+    //   const query = `
+    //     SELECT p.*, c.type_name 
+    //     FROM post p 
+    //     JOIN postcategory c ON p.postcategory_sid = c.sid 
+    //     WHERE p.postcategory_sid = ? 
+    //     LIMIT ?, ?
+    //   `;
+    //   const perPage = 6;
+    //   const page = req.query.page || 1;
+    //   const offset = (page - 1) * perPage;
+  
+    //   const [rows] = await connection.query(query, [postCategory, offset, perPage]);
+    //   connection.release();
+  
+    //   const [totalRows] = await connection.query('SELECT COUNT(*) as totalRows FROM post WHERE postcategory_sid = ?', [postCategory]);
+    //   const totalPages = Math.ceil(totalRows[0].totalRows / perPage);
+  
+    //   res.json({
+    //     totalRows: totalRows[0].totalRows,
+    //     perPage: perPage,
+    //     totalPages: totalPages,
+    //     page: parseInt(page),
+    //     rows: rows,
+    //   });
+    // } catch (error) {
+    //   console.error('Error executing SQL query:', error);
+    //   res.status(500).json({ error: 'Internal Server Error' });
+    // }
 
 // 取得單筆資料的api
 // router.get('/api/:sid', async(req, res)=>{
