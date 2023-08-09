@@ -246,7 +246,6 @@ router.put('/order', async(req,res)=>{
 
     Promise.all(
         details.map(async (v)=>{
-            console.log(v);
             const quantity = Number(v.quantity) 
             const[data] = await db.query(sql, [quantity,quantity,v.pid])
         })

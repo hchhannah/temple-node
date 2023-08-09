@@ -53,9 +53,9 @@ router.post('/details', async (req, res) => {
 // 參拜大綱
 router.get('/summary', async (req, res) => {
     const member_id = 'wayz'
-    const sql_notDone = `SELECT * FROM \`worship_summary\` WHERE \`member_id\`=? AND \`complete\`=0 ORDER BY \`day\` ASC`
+    const sql_notDone = `SELECT ws.* , wd.pid1, wd.pid2, wd.pid3 FROM worship_summary ws JOIN worship_details wd ON ws.wid = wd.wid WHERE \`member_id\`=? AND \`complete\`=0 ORDER BY \`day\` ASC`
     const [notDone] = await db.query(sql_notDone , [member_id])
-    const sql_done = `SELECT * FROM \`worship_summary\` WHERE \`member_id\`=? AND \`complete\`=1 ORDER BY \`day\` ASC`
+    const sql_done = `SELECT ws.* , wd.pid1, wd.pid2, wd.pid3 FROM worship_summary ws JOIN worship_details wd ON ws.wid = wd.wid WHERE \`member_id\`=? AND \`complete\`=1 ORDER BY \`day\` ASC`
     const [done] = await db.query(sql_done , [member_id])
     const data = [...notDone, ...done]
     res.json(data)
@@ -66,16 +66,23 @@ router.post('/getDetails', async (req, res) => {
     const {wid} = req.body.requestData
     const sql = `SELECT * FROM \`worship_details\` WHERE \`wid\`=?`
     const [data] = await db.query(sql , [wid])
-    // const pidArr =[]
-    // for (let i = 1; i <= 3; i++) {
-    //     if (!!data[0]['pid' + i]) {
-    //         pidArr.push(data[0]['pid' + i]);
-    //     }
-    // }
     const sql_products = `SELECT * FROM \`worship\` WHERE \`pid\` IN(?,?,?)`
     const [products] = await db.query(sql_products,[data[0].pid1, data[0].pid2, data[0].pid3])
     const output = [data[0], products]
     res.json(output)
+})
+
+// 拜拜的商品照片
+router.post('/image', async (req,res)=>{
+    const {pidArr} = req.body.requestData
+    if(pidArr){
+        const sql =`SELECT \`image\` FROM \`worship\` WHERE \`pid\` IN(?,?,?)`
+        const [data] = await db.query(sql, [pidArr[0], pidArr[1], pidArr[2]])
+        res.json(data)
+    }
+    else{
+        res.json([])
+    }
 })
 
 module.exports = router;
