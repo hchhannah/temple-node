@@ -57,7 +57,6 @@ router.get("/", async (req, res) =>{
     // res.json({totalRows, perPage, totalPages, page, rows});
 });
 
-
 //抓單筆貼文
 router.get("/:category/:post_sid", async(req, res)=>{
 
@@ -139,12 +138,94 @@ router.post('/:category', async (req, res) => {
     const page = req.body.page || 1;
     const offset = (page - 1) * perPage;
     const [data] = await db.query(sql,[sid+1,offset,perPage])
-
+    data.forEach(i => {
+        i.publish_time = dayjs(i.publish_time).format('YYYY-MM-DD-HH:mm:ss');
+    });
     const [totalRows] = await db.query('SELECT COUNT(*) as totalRows FROM post WHERE postcategory_sid = ?', [sid+1]);
     const totalPages = Math.ceil(totalRows[0].totalRows / perPage);
     const output  = [data, {totalPages: totalPages}] 
     res.json(output)
 });
+
+//新增貼文
+router.post('/:category/add', async (req, res) => {
+    const postCategory = req.params.category;
+    const {title, content} = req.body.requestData
+    const member_id = 'wayz'
+    const info = [
+        {
+        text: '八卦版',
+        id: 'gossip',
+    },
+        {
+        text: '愛情版',
+        id: 'love',
+        
+    },
+        {
+        text: '鬼故事版',
+        id: 'ghost',
+    },
+        {
+        text: '籤詩版',
+        id: 'fortunesticks',
+    },
+    ]   
+    const postcategory_sid = info.findIndex((v)=>v.id===postCategory)
+    
+    const sql = `INSERT INTO post (member_id, title, content, publish_time, postcategory_sid)
+    VALUES (?, ?, ?, NOW(), ?);`
+
+    const [data] = await db.query(sql, [member_id, title, content, postcategory_sid+1])
+
+    res.json(data)
+});
+
+//
+// router.post('/:category', async (req, res) => {
+//     const postCategory = req.params.category;
+//     console.log(req.body.page);
+//     const info = [
+//         {
+//         text: '八卦版',
+//         id: 'gossip',
+//     },
+//         {
+//         text: '愛情版',
+//         id: 'love',
+        
+//     },
+//         {
+//         text: '鬼故事版',
+//         id: 'ghost',
+//     },
+//         {
+//         text: '籤詩版',
+//         id: 'fortunesticks',
+//     },
+// ]   
+//     const sid = info.findIndex((v)=>v.id===postCategory)
+    
+//     const sql = ` SELECT p.*, c.type_name 
+//     FROM post p 
+//     JOIN postcategory c ON p.postcategory_sid = c.sid 
+//     WHERE p.postcategory_sid = ? 
+//     LIMIT ?, ?`
+
+//     const perPage = 6;
+//     const page = req.body.page || 1;
+//     const offset = (page - 1) * perPage;
+//     const [data] = await db.query(sql,[sid+1,offset,perPage])
+
+//     const [totalRows] = await db.query('SELECT COUNT(*) as totalRows FROM post WHERE postcategory_sid = ?', [sid+1]);
+//     const totalPages = Math.ceil(totalRows[0].totalRows / perPage);
+//     const output  = [data, {totalPages: totalPages}] 
+//     res.json(output)
+// });
+
+
+//
+
     // if (!postCategory) {
     //   return res.status(400).json({ error: 'Missing postcategory_sid parameter' });
     // }
