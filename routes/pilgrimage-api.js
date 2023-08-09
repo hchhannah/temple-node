@@ -38,5 +38,27 @@ router.get("/onlineQuiz", async (req, res) =>{
     return res.json(output);
 });
 
+//優惠券
+router.post('/onlineQuiz', async (req,res)=>{
+    console.log(req.body.requestData );
+    const member_id = '1'
+//   const {Member_ID, Name, Sid, Datetime} = req.body.requestData   
+const sql = "INSERT INTO `coupons_status`" +
+"`coupon_status_id`, `coupon_id`, `member_id`, `usage_status`, `start_date`, `expiration_date`, `created_at`" +
+" VALUES ( ?, ?, ?,?, ?, ?, NOW())";
+console.log('r:',member_id);
+const [result] = await db.query(sql,[
+    coupon_status_id,
+    coupon_id,
+    member_id,
+    req.body.usage_status,
+    req.body.start_date,
+    req.body.expiration_date,
+])
+    res.json({
+        result,
+        postData: req.body
+    })
+});
 
 module.exports = router;

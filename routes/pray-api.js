@@ -110,6 +110,29 @@ const [result] = await db.query(sql,[
     })
 });
 
+//護身粽子
+router.post('/studyA-3', async (req,res)=>{
+    console.log(req.body.requestData );
+    const Member_ID = '1'
+    const Name = '粽子'
+//   const {Member_ID, Name, Sid, Datetime} = req.body.requestData   
+const sql = "INSERT INTO `Amulet`" +
+"(`Member_ID`, `Name`, `Sid`, `Datetime`)" +
+" VALUES ( ?, ?, ?, NOW())";
+console.log('r:',Member_ID);
+const [result] = await db.query(sql,[
+    Member_ID,
+    Name,
+    req.body.Sid,
+    req.body.Datetime,
+])
+    res.json({
+        result,
+        postData: req.body
+    })
+});
+
+
 //護身籤詩
 router.post('/mazu4', async (req,res)=>{
     console.log(req.body.requestData );
@@ -128,6 +151,30 @@ const [result] = await db.query(sql,[
     res.json({
         result,
         postData: req.body
+    })
+});
+
+//准考證
+router.post('/studyA-2', upload.single("preImg"),async (req,res)=>{
+    console.log(req.body.requestData );
+    const Member_ID = '1'
+  const { Name, School, Ticket_Img, Datetime} = req.body.requestData   
+  const image = req.file.filename;
+const sql = "INSERT INTO `Study_Ticket`" +
+"(`Member_ID`,  `Name`, `School`, `Ticket_Img`, `Datetime`)" +
+" VALUES ( ?, ?, ?,?,?, NOW())";
+const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
+console.log('r:',Member_ID);
+const [result] = await db.query(sql,[
+    Member_ID,
+    Name,
+    School,
+    Ticket_Img,
+    Datetime,
+])
+    res.json({
+        result,
+        postData: req.body,
     })
 });
 
