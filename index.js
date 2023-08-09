@@ -101,6 +101,8 @@ app.use("/pray", require(__dirname + "/routes/pray-api"));
 // 遶境資料api
 app.use("/pilgrimage", require(__dirname + "/routes/pilgrimage-api"));
 
+app.use("/worship", require(__dirname + "/routes/worship-api"));
+
 // 定義PORT
 const port = process.env.PORT || 3000;
 
