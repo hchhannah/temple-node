@@ -587,7 +587,7 @@ router.get("/wishList", async (req, res) => {
   const member_id = res.locals.jwtData.id;
 
   const sql = `
-  SELECT p.image, p.product_name, p.product_price, lp.lid
+  SELECT p.pid, p.cid, p.image, p.product_name, p.product_price, lp.lid
   FROM products p
   JOIN like_products lp ON p.pid = lp.lid 
   WHERE lp.member_id = ?
