@@ -326,8 +326,14 @@ router.get("/allCoupons", async (req, res) => {
   WHERE expiration_date <= CURDATE() AND usage_status != '已使用' AND member_id = ?`;
   const [updated] = await db.query(updateSql, [member_id]);
 
-  const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
-    AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.member_id=?  ORDER BY cs. start_date DESC`;
+  const sql = `
+  SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
+    AS expiration_date 
+  FROM coupons c 
+  JOIN coupons_status cs ON c.coupon_id = cs.coupon_id 
+  WHERE cs.member_id=?  
+  ORDER BY cs. start_date DESC`;
+
   const [rows] = await db.query(sql, [member_id]);
 
   if (!rows.length) {
@@ -558,6 +564,42 @@ router.delete("/profilePhoto", async (req, res) => {
       .status(500)
       .json({ success: false, message: "刪除個人檔案照片時出錯。" });
   }
+});
+
+//喜好商品
+
+router.get("/wishList", async (req, res) => {
+  // let { sid } = req.params;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  const sql = `
+  SELECT p.image, p.product_name, p.product_price, lp.lid
+  FROM products p
+  JOIN like_products lp ON p.pid = lp.lid 
+  WHERE lp.member_id = ?
+  ORDER BY lp.created_at DESC
+`;
+
+  const [rows] = await db.query(sql, [member_id]);
+  if (!rows.length) {
+    return res.redirect(req.baseUrl);
+  }
+  console.log(rows);
+  res.json(rows);
 });
 
 //每日簽到 讀
