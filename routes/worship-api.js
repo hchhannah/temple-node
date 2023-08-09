@@ -31,7 +31,7 @@ router.post('/confirm', async (req, res) => {
 
 // 加入參拜資訊
 router.post('/details', async (req, res) => {
-    const {god, day, time, pidArr, total, complete, delivery, payment, status} = req.body.requestData
+    const {god, day, time, pidArr, total, complete, delivery, payment, receivedInfo, status} = req.body.requestData
     const member_id = 'wayz'
 
     // summary
@@ -44,8 +44,8 @@ router.post('/details', async (req, res) => {
     const wid = widArr[0].wid
 
     // details
-    const sql_details = `INSERT INTO \`worship_details\`( \`wid\`, \`delivery\`, \`payment\`, \`status\`, \`pid1\`, \`pid2\`, \`pid3\`) VALUES (?,?,?,?,?,?,?)`
-    const [details] = await db.query(sql_details,[wid, delivery, payment, status, pidArr[0],pidArr[1], pidArr[2]])
+    const sql_details = `INSERT INTO \`worship_details\`( \`wid\`, \`delivery\`, \`payment\`, \`receivedInfo\`, \`status\`, \`pid1\`, \`pid2\`, \`pid3\`) VALUES (?,?,?,?,?,?,?,?)`
+    const [details] = await db.query(sql_details,[wid, delivery, payment, receivedInfo, status, pidArr[0],pidArr[1], pidArr[2]])
 
     res.json('success')
 })
@@ -62,14 +62,20 @@ router.get('/summary', async (req, res) => {
 })
 
 // 參拜詳細
-// router.post('/getDetails', async (req, res) => {
-//     const member_id = 'wayz'
-//     const sql = `SELECT * FROM \`worship_details\` WHERE \`member_id\`=? AND \`complete\`=0 ORDER BY \`day\` ASC`
-//     const [data] = await db.query(sql , [member_id])
-  
-//     res.json(data)
-// })
-
-
+router.post('/getDetails', async (req, res) => {
+    const {wid} = req.body.requestData
+    const sql = `SELECT * FROM \`worship_details\` WHERE \`wid\`=?`
+    const [data] = await db.query(sql , [wid])
+    // const pidArr =[]
+    // for (let i = 1; i <= 3; i++) {
+    //     if (!!data[0]['pid' + i]) {
+    //         pidArr.push(data[0]['pid' + i]);
+    //     }
+    // }
+    const sql_products = `SELECT * FROM \`worship\` WHERE \`pid\` IN(?,?,?)`
+    const [products] = await db.query(sql_products,[data[0].pid1, data[0].pid2, data[0].pid3])
+    const output = [data[0], products]
+    res.json(output)
+})
 
 module.exports = router;
