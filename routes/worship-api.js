@@ -15,6 +15,16 @@ router.post('/', async (req, res) => {
     res.json(data)
 })
 
+// 全部套組 
+router.get('/', async (req, res) => {
+    const sql = `SELECT * FROM \`worship\` WHERE \`cid\`=? `
+    const [mazu] = await db.query(sql,[36])
+    const [love] = await db.query(sql,[37])
+    const [study] = await db.query(sql,[38])
+    const data = [mazu, love, study]
+    res.json(data)
+})
+
 // 抓選取好pid
 router.post('/confirm', async (req, res) => {
     const {pidArr} = req.body.requestData
