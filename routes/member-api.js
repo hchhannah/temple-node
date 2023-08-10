@@ -677,6 +677,8 @@ router.post("/dailySignIn", multipartParser, async (req, res) => {
     // Insert into daily_signins and coupons_status in a single query
     const signInSql = `INSERT INTO daily_signins (member_id, signin_date) VALUES (?, NOW());`;
     const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (?, ?, '未使用', ?, ?);`;
+    // const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (12, ?, '未使用', ?, ?);`;
+    // const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (13, ?, '未使用', ?, ?);`;
 
     //檢查coupon value
 
