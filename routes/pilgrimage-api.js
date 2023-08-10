@@ -43,13 +43,10 @@ router.post('/onlineQuiz', async (req,res)=>{
     console.log(req.body.requestData );
     const member_id = '1'
 //   const {Member_ID, Name, Sid, Datetime} = req.body.requestData   
-const sql = "INSERT INTO `coupons_status`" +
-"`coupon_status_id`, `coupon_id`, `member_id`, `usage_status`, `start_date`, `expiration_date`, `created_at`" +
-" VALUES ( ?, ?, ?,?, ?, ?, NOW())";
+const sql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (?, ?, '未使用', ?, ?);`;
 console.log('r:',member_id);
 const [result] = await db.query(sql,[
-    coupon_status_id,
-    coupon_id,
+    req.body.coupon_id,
     member_id,
     req.body.usage_status,
     req.body.start_date,
