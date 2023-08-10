@@ -89,19 +89,19 @@ router.get("/:category/:post_sid", async(req, res)=>{
 
     });
     
-router.use((req, res, next)=>{
-    res.locals.title = '八卦版' + res.locals.title;
-    next();
-});
+// router.use((req, res, next)=>{
+//     res.locals.title = '八卦版' + res.locals.title;
+//     next();
+// });
 
-router.get('/api', async(req, res)=>{
-    const output = await getListData(req);
-    output.rows.forEach(i=>{
-    i.publish_time =dayjs(i.publish_time).format('YYYY-MM-DD-HH-mm-ss');
-});
-res.json(output);
+// router.get('/api', async(req, res)=>{
+//     const output = await getListData(req);
+//     output.rows.forEach(i=>{
+//     i.publish_time =dayjs(i.publish_time).format('YYYY-MM-DD-HH-mm-ss');
+// });
+// res.json(output);
 
-});
+// });
 
 //抓各版貼文
 router.post('/:category', async (req, res) => {
