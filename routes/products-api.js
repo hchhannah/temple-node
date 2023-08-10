@@ -21,7 +21,7 @@ router.post('/', async (req, res) => {
 
 // 瀏覽紀錄
 router.get('/history', async (req, res) => {
-    const member_id = 'wayz';
+    const member_id = res.locals.jwtData.id;
     const sql = `SELECT p.*, b.created_at FROM products p JOIN browse_history b ON p.pid = b.pid WHERE b.member_id=? ORDER BY b.created_at DESC`
     const [data] = await db.query(sql,[member_id])
     const sql_keep = `SELECT * 
@@ -54,7 +54,7 @@ router.get('/history', async (req, res) => {
 
 // 加入瀏覽紀錄
 router.post('/history', async (req, res) => {
-    const member_id = 'wayz';
+    const member_id = res.locals.jwtData.id;
     const {pid} = req.body.requestData
      // 如果本來就存在了就刪掉舊的加入新的，沒有就直接加入
      const sql_count = `SELECT COUNT(1) FROM \`browse_history\` WHERE \`pid\` = ? AND \`member_id\`=?`
@@ -73,7 +73,8 @@ router.post('/history', async (req, res) => {
 
 // navbar購物車資料
 router.get('/count', async (req, res) => {
-    const member_id = 'wayz'
+    // const member_id = '1'
+    const member_id = res.locals.jwtData.id;
     const sql = `SELECT COUNT(1) FROM \`cart\` WHERE \`member_id\`=?`
     const [data] = await db.query(sql, [member_id])
     res.json(data[0]['COUNT(1)'])
@@ -82,7 +83,7 @@ router.get('/count', async (req, res) => {
 
 // 刪除喜好商品
 router.get('/favoriteMatch', async (req, res) => {
-    const member_id = 'wayz';
+    const member_id = res.locals.jwtData.id;
     // const {pid} = req.body.requestData;  
     const sql = `SELECT * FROM \`like_products\` WHERE \`member_id\`=?`
     const [data] = await db.query(sql,[member_id])
@@ -95,7 +96,20 @@ router.get('/favoriteMatch', async (req, res) => {
 
 // 購物車內容
 router.get('/cart',async(req,res)=>{
-    const member_id = 'wayz'
+    // const output = {
+    // success: false,
+    // code: 0,
+    // error: "",
+    // };
+
+    // if (!res.locals.jwtData) {
+    // output.error = "沒有驗證";
+    // return res.json(output);
+    // } else {
+    // output.jwtData = res.locals.jwtData; // 測試用
+    // }
+    
+    const member_id = '1'
     const sql = `SELECT p.* , c.quantity FROM products p JOIN cart c ON p.pid = c.pid WHERE member_id = ? ORDER BY c.created_at DESC;`
     const [data] = await db.query(sql,[member_id])
     res.json(data)
@@ -103,7 +117,7 @@ router.get('/cart',async(req,res)=>{
 
 // 下次再買內容
 router.get('/wannaBuy',async(req,res)=>{
-    const member_id = 'wayz'
+    const member_id = res.locals.jwtData.id
     const sql = `SELECT p.* , w.created_at FROM products p JOIN wanna_buy w ON p.pid = w.pid WHERE \`member_id\`=? ORDER BY \`wid\` DESC;`
     const [data] = await db.query(sql, [member_id])
     res.json(data)
@@ -111,7 +125,7 @@ router.get('/wannaBuy',async(req,res)=>{
 
 // 加入購物車
 router.post('/cart', async (req, res) => {
-    const member_id = 'wayz';
+    const member_id = res.locals.jwtData.id;
     const {count, pid , wannaBuy} = req.body.requestData;  
     
     // 判斷有沒有在購物車裡
@@ -149,7 +163,7 @@ router.post('/cart', async (req, res) => {
 
 // 加入喜好商品
 router.post('/favorite', async (req, res) => {
-    const member_id = 'wayz';
+    const member_id = res.locals.jwtData.id;
     const {pid} = req.body.requestData;  
     
     const sql = `INSERT INTO \`like_products\`(\`member_id\`, \`pid\`, \`created_at\`) VALUES (?,?,NOW())`
@@ -160,7 +174,7 @@ router.post('/favorite', async (req, res) => {
 
 //加入下次再買
 router.post('/wannaBuy', async (req, res) => {
-    const member_id = 'wayz'
+    const member_id = res.locals.jwtData.id
     const {pid} = req.body.requestData;
     // 判斷下次再買了有沒有這筆商品 
     const sql_count= `SELECT COUNT(1) FROM \`wanna_buy\` WHERE \`pid\`=? AND \`member_id\`=?`
@@ -182,7 +196,7 @@ router.post('/wannaBuy', async (req, res) => {
 
 // 更新購物車數量
 router.put('/cart', async(req,res)=>{
-    const member_id = 'wayz'
+    const member_id = res.locals.jwtData.id
     const {count, pid} = req.body.requestData;
     // 更新數量
     const sql = `UPDATE \`cart\` SET \`quantity\`=? WHERE \`pid\`=? AND \`member_id\`=?`
@@ -192,7 +206,7 @@ router.put('/cart', async(req,res)=>{
 
 // 從購物車刪除
 router.delete('/cart', async(req,res)=>{
-    const member_id = 'wayz'
+    const member_id = res.locals.jwtData.id
     const {pid} = req.body.requestData;
     const sql = `DELETE FROM \`cart\` WHERE \`pid\`=? AND \`member_id\`=?`
     if(Array.isArray(pid)){
@@ -210,7 +224,7 @@ router.delete('/cart', async(req,res)=>{
 
 // 刪除喜好商品
 router.delete('/favorite', async (req, res) => {
-    const member_id = 'wayz';
+    const member_id = res.locals.jwtData.id;
     const {pid} = req.body.requestData;  
     
     const sql = `DELETE FROM \`like_products\` WHERE \`pid\`=? AND \`member_id\`=?`
@@ -221,7 +235,7 @@ router.delete('/favorite', async (req, res) => {
 
 // 從下次再買刪除
 router.delete('/wannaBuy', async(req,res)=>{
-    const member_id = 'wayz'
+    const member_id = res.locals.jwtData.id
     const {pid} = req.body.requestData;
     const sql_delete = `DELETE FROM \`wanna_buy\` WHERE \`pid\`=? AND \`member_id\`=?`
     const[deleted] = await db.query(sql_delete,[pid, member_id]) 
@@ -230,7 +244,7 @@ router.delete('/wannaBuy', async(req,res)=>{
 
 //訂單summary資料
 router.get('/order', async(req,res)=>{
-    const member_id = 'wayz'
+    const member_id = res.locals.jwtData.id
     const sql = `SELECT * FROM \`order_summary\` WHERE \`member_id\`=? ORDER BY \`created_at\` DESC`
     const [data] = await db.query(sql, [member_id])
     res.json(data)
@@ -256,7 +270,7 @@ router.put('/order', async(req,res)=>{
 
 // 送出訂單
 router.post('/order',async(req,res)=>{
-    const member_id = 'wayz'
+    const member_id = res.locals.jwtData.id
     const {cartData, customerData, total, status} = req.body.requestData;
 
     // for order_summary
@@ -290,7 +304,7 @@ router.post('/order',async(req,res)=>{
 
 //訂單details資料
 router.get('/orderDetails', async(req,res)=>{
-    const member_id = 'wayz'
+    const member_id = res.locals.jwtData.id
     // 訂單編號
     const sql_oid = `SELECT \`oid\` FROM \`order_summary\` WHERE \`member_id\` = ? ORDER BY \`created_at\` DESC`
     const [oid] = await db.query(sql_oid,[member_id])
