@@ -282,6 +282,7 @@ router.put("/personalinfo", async (req, res) => {
 
     console.log("updateResult.affectedRows:", updateResult.affectedRows);
     console.log("updateResult.changedRows:", updateResult.changedRows);
+    console.log("updateResult.message:", updateResult);
 
     if (updateResult.affectedRows === 1) {
       if (updateResult.changedRows === 0) {
