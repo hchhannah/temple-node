@@ -66,7 +66,7 @@ router.get("/:category/:post_sid", async(req, res)=>{
         row:null
     };
     const post_sid = parseInt(req.params.post_sid) || 0;
-    console.log(post_sid)
+    // console.log(post_sid)
     if(! post_sid){
     //沒有sid
     output.error = '沒有 sid !';
@@ -103,10 +103,54 @@ router.get("/:category/:post_sid", async(req, res)=>{
 
 // });
 
+//按讚
+router.post('/good', async (req,res)=>{
+    const {sid} = req.body.requestData
+    const member_id = '1'
+    const sql_insert = `INSERT INTO \`good\`(\`post_sid\`, \`member_id\`) VALUES (?,?)`
+    const [data] = await db.query(sql_insert, [sid, member_id])
+    const sql_update = `UPDATE \`post\` SET \`good\`=\`good\`+1 WHERE \`sid\`=?`
+    const [rows] =await db.query(sql_update,[sid])
+    res.json(data)
+}) 
+
+//收回讚
+router.delete('/good', async (req,res)=>{
+    const {sid} = req.body.requestData
+    const member_id = '1'
+    const sql = `DELETE FROM \`good\` WHERE \`post_sid\`=? AND \`member_id\`= ?`
+    const [data] = await db.query(sql, [sid, member_id])
+    const sql_update = `UPDATE \`post\` SET \`good\`=\`good\`-1 WHERE \`sid\`=?`
+    const [rows] =await db.query(sql_update,[sid])
+    res.json(data)
+}) 
+
+//珍藏
+router.post('/collect', async (req,res)=>{
+    const {sid} = req.body.requestData
+    const member_id = '1'
+    const sql_insert = `INSERT INTO \`postcollect\`( \`post_sid\`, \`member_id\`) VALUES (?,?)`
+    const [data] = await db.query(sql_insert, [sid, member_id])
+    // const sql_update = `UPDATE \`post\` SET \`good\`=\`good\`+1 WHERE \`sid\`=?`
+    // const [rows] =await db.query(sql_update,[sid])
+    res.json(data)
+}) 
+
+//取消珍藏
+router.delete('/collect', async (req,res)=>{
+    const {sid} = req.body.requestData
+    const member_id = '1'
+    const sql = `DELETE FROM \`postcollect\` WHERE \`post_sid\`=? AND \`member_id\`=?`
+    const [data] = await db.query(sql, [sid, member_id])
+    // const sql_update = `UPDATE \`post\` SET \`good\`=\`good\`-1 WHERE \`sid\`=?`
+    // const [rows] =await db.query(sql_update,[sid])
+    res.json(data)
+}) 
+
 //抓各版貼文
 router.post('/:category', async (req, res) => {
     const postCategory = req.params.category;
-    console.log(req.body.page);
+    const member_id ='1'
     const info = [
         {
         text: '八卦版',
@@ -143,7 +187,14 @@ router.post('/:category', async (req, res) => {
     });
     const [totalRows] = await db.query('SELECT COUNT(*) as totalRows FROM post WHERE postcategory_sid = ?', [sid+1]);
     const totalPages = Math.ceil(totalRows[0].totalRows / perPage);
-    const output  = [data, {totalPages: totalPages}] 
+
+    const sql_good =`SELECT * FROM \`good\` WHERE \`member_id\`=?`
+    const [good] = await db.query(sql_good,[member_id])
+
+    const sql_collect =`SELECT * FROM \`postcollect\` WHERE \`member_id\`=?`
+    const [collect] = await db.query(sql_collect,[member_id])
+
+    const output  = [data, {totalPages: totalPages}, good, collect] 
     res.json(output)
 });
 
@@ -180,6 +231,9 @@ router.post('/:category/add', async (req, res) => {
 
     res.json(data)
 });
+
+
+
 
 //
 // router.post('/:category', async (req, res) => {
