@@ -156,26 +156,29 @@ const [result] = await db.query(sql,[
 
 //准考證
 router.post('/studyA-2', upload.single("preImg"),async (req,res)=>{
-    console.log(req.body.requestData );
+    // console.log(req.body.requestData );
+    
     const Member_ID = '1'
-  const { Name, School, Ticket_Img, Datetime} = req.body.requestData   
-  const image = req.file.filename;
-const sql = "INSERT INTO `Study_Ticket`" +
-"(`Member_ID`,  `Name`, `School`, `Ticket_Img`, `Datetime`)" +
-" VALUES ( ?, ?, ?,?,?, NOW())";
-const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
-console.log('r:',Member_ID);
-const [result] = await db.query(sql,[
+    const { Name, School, image_uploads, Datetime} = req.body.requestData   
+    // const image = req.file.filename;
+    const sql = "INSERT INTO `Study_Ticket`" +
+    "(`Member_ID`,  `Name`, `School`, `Ticket_Img`, `Datetime`)" +
+    " VALUES ( ?, ?, ?, ?, NOW())";
+    // const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
+    // console.log('r:',Member_ID);
+    const [result] = await db.query(sql,[
     Member_ID,
     Name,
     School,
-    Ticket_Img,
+    image_uploads,
     Datetime,
-])
-    res.json({
-        result,
-        postData: req.body,
-    })
+    ])
+
+    res.json(result)
+    // res.json({
+    //     result,
+    //     postData: req.body,
+    // })
 });
 
 
