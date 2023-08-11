@@ -265,10 +265,18 @@ router.post("/:category/addphoto", upload.single("preImg"), async (req, res) => 
   
     // const member_id = res.locals.jwtData.id;
     const image = req.file.filename;
+    // console.log(image,'ggtgtgtgtgtgt');
     const sql = "UPDATE post SET `img`=? WHERE `sid`=?";
-    const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
-    res.json(req.file);
+    // const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
+    const [rows] = await db.query(sql, [image, 1]);
+
+    // res.json(req.file);
+    res.json({mesage:123});
+
   });
+
+
+//前端讀取新貼文的照片
 
 //讀出新增文章頁會員頭貼
 router.get("/:category/read_addpost_profilePhoto", upload.single("preImg"), async (req, res) => {});
