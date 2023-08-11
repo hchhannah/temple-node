@@ -235,8 +235,7 @@ router.get("/personalinfo", async (req, res) => {
   member_phone, 
   member_birthday, 
   member_forum_name, 
-  member_profile, 
-  member_invoice
+  member_profile 
 FROM 
   members 
 WHERE 
@@ -293,7 +292,6 @@ router.put("/personalinfo", async (req, res) => {
     const sql = "UPDATE members SET ? WHERE member_id = ?";
     delete dataObj.member_id;
     delete dataObj.member_profile;
-    delete dataObj.member_invoice;
     console.log(JSON.stringify(dataObj, null, 2));
 
     const [updateResult] = await db.query(sql, [dataObj, member_id]);
@@ -322,11 +320,10 @@ router.put("/personalinfo", async (req, res) => {
       member_birthday,
       member_forum_name,
       member_profile,
-      member_invoice,
     } = dataObj;
 
     const sql =
-      "UPDATE `members` SET `member_account`=?,`member_name`=?,`member_address`=?,`member_phone`=?,`member_birthday`=?,`member_forum_name`=?,`member_profile`=?,`member_invoice`=? WHERE member_id = ?";
+      "UPDATE `members` SET `member_account`=?,`member_name`=?,`member_address`=?,`member_phone`=?,`member_birthday`=?,`member_forum_name`=?,`member_profile`=?,=? WHERE member_id = ?";
 
     console.log(JSON.stringify(dataObj, null, 2));
 
