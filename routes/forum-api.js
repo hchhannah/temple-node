@@ -203,6 +203,7 @@ router.post('/:category/add', async (req, res) => {
     const postCategory = req.params.category;
     const {title, content} = req.body.requestData
     const member_id = 'wayz'
+    // const member_id = req.body.member_id
     const info = [
         {
         text: '八卦版',
@@ -224,17 +225,62 @@ router.post('/:category/add', async (req, res) => {
     ]   
     const postcategory_sid = info.findIndex((v)=>v.id===postCategory)
     
-    const sql = `INSERT INTO post (member_id, title, content, publish_time, postcategory_sid)
-    VALUES (?, ?, ?, NOW(), ?);`
+    const sql = `INSERT INTO post (member_id, title, content, publish_time, postcategory_sid, good, img)
+    VALUES (?, ?, ?, NOW(), ?, 0, 0);`
 
     const [data] = await db.query(sql, [member_id, title, content, postcategory_sid+1])
 
     res.json(data)
 });
 
+router.post('/:category/userid', async (req, res) => {
+res.json(req.body)
+});
 
+//讀取圖片
+router.get("/profilePhoto", upload.single("preImg"), async (req, res) => {
+    const output = {
+      success: false,
+      code: 0,
+      error: "",
+    };
+  
+    if (!res.locals.jwtData) {
+      output.error = "沒有驗證";
+      return res.json(output);
+    } else {
+      output.jwtData = res.locals.jwtData; // 測試用
+    }
+  
+    const member_id = res.locals.jwtData.id;
+    // const image = req.file.filename;
+    const sql = `SELECT img FROM post WHERE sid=?`;
+    const [rows] = await db.query(sql, [member_id]);
+    res.json(rows[0]);
+  });
 
-
+//新增圖片
+//後端上傳照片測試
+router.post("/:category/addphoto", upload.single("preImg"), async (req, res) => {
+    // const output = {
+    //   success: false,
+    //   code: 0,
+    //   error: "",
+    // };
+  
+    // if (!res.locals.jwtData) {
+    //   output.error = "沒有驗證";
+    //   return res.json(output);
+    // } else {
+    //   output.jwtData = res.locals.jwtData; // 測試用
+    // }
+  
+    // const member_id = res.locals.jwtData.id;
+    const image = req.file.filename;
+    const sql = "UPDATE post SET `img`=? WHERE `sid`=?";
+    const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
+    res.json(req.file);
+  });
 //
 // router.post('/:category', async (req, res) => {
 //     const postCategory = req.params.category;
