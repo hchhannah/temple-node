@@ -155,20 +155,7 @@ const [result] = await db.query(sql,[
 });
 
 //准考證
-const multer = require('multer');
-const path = require('path');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../public/img')); // 指定保存路徑
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname); // 使用唯一的文件名
-  },
-});
-
-const uploadMiddleware = multer({ storage: storage }).single('preImg');
 router.post('/studyA-2', upload.single("preImg"),async (req,res)=>{
     // console.log(req.body.requestData );
     
