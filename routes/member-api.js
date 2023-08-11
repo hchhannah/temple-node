@@ -227,7 +227,20 @@ router.get("/personalinfo", async (req, res) => {
 
   const member_id = res.locals.jwtData.id;
 
-  const sql = "SELECT * FROM members WHERE member_id=?";
+  const sql = `SELECT 
+  member_id, 
+  member_account, 
+  member_name, 
+  member_address, 
+  member_phone, 
+  member_birthday, 
+  member_forum_name, 
+  member_profile, 
+  member_invoice
+FROM 
+  members 
+WHERE 
+  member_id = ?;`;
 
   const [rows] = await db.query(sql, [member_id]);
 
@@ -278,10 +291,60 @@ router.put("/personalinfo", async (req, res) => {
 
     // 使用 "UPDATE ... SET ? WHERE ..." 語法並使用 dataObj 和 member_id
     const sql = "UPDATE members SET ? WHERE member_id = ?";
+    delete dataObj.member_id;
+    delete dataObj.member_profile;
+    delete dataObj.member_invoice;
+    console.log(JSON.stringify(dataObj, null, 2));
+
     const [updateResult] = await db.query(sql, [dataObj, member_id]);
 
+    const sql_r = "SELECT * FROM `members` WHERE member_id=? ";
+    const [rows] = await db.query(sql_r, [member_id]);
+
+    let isChanged = false;
+    if (rows && rows.length) {
+      for (let i in dataObj) {
+        if (dataObj[i] != rows[0][i]) {
+          console.log(dataObj[i]);
+          console.log(rows[0][i]);
+          console.log("--------------");
+          isChanged = true;
+        }
+      }
+    }
+    console.log({ isChanged });
+    /*
+    const {
+      member_account,
+      member_name,
+      member_address,
+      member_phone,
+      member_birthday,
+      member_forum_name,
+      member_profile,
+      member_invoice,
+    } = dataObj;
+
+    const sql =
+      "UPDATE `members` SET `member_account`=?,`member_name`=?,`member_address`=?,`member_phone`=?,`member_birthday`=?,`member_forum_name`=?,`member_profile`=?,`member_invoice`=? WHERE member_id = ?";
+
+    console.log(JSON.stringify(dataObj, null, 2));
+
+    const [updateResult] = await db.query(sql, [
+      member_account,
+      member_name,
+      member_address,
+      member_phone,
+      member_birthday,
+      member_forum_name,
+      member_profile,
+      member_invoice,
+      member_id,
+    ]);
+*/
     console.log("updateResult.affectedRows:", updateResult.affectedRows);
     console.log("updateResult.changedRows:", updateResult.changedRows);
+    console.log("updateResult.message:", updateResult);
 
     if (updateResult.affectedRows === 1) {
       if (updateResult.changedRows === 0) {
@@ -454,23 +517,23 @@ router.get("/expiredCoupons", async (req, res) => {
 router.get("/amulet", async (req, res) => {
   // let { sid } = req.params;
 
-  const output = {
-    success: false,
-    code: 0,
-    error: "",
-  };
+  // const output = {
+  //   success: false,
+  //   code: 0,
+  //   error: "",
+  // };
 
-  if (!res.locals.jwtData) {
-    output.error = "沒有驗證";
-    return res.json(output);
-  } else {
-    output.jwtData = res.locals.jwtData; // 測試用
-  }
+  // if (!res.locals.jwtData) {
+  //   output.error = "沒有驗證";
+  //   return res.json(output);
+  // } else {
+  //   output.jwtData = res.locals.jwtData; // 測試用
+  // }
 
-  const member_id = res.locals.jwtData.id;
+  // const member_id = res.locals.jwtData.id;
 
   const sql = `SELECT Name FROM amulet WHERE Member_ID=? `;
-  const [rows] = await db.query(sql, [member_id]);
+  const [rows] = await db.query(sql, [res.locals.jwtData.id]);
 
   if (!rows.length) {
     return res.redirect(req.baseUrl);
@@ -501,6 +564,28 @@ router.get("/profilePhoto", upload.single("preImg"), async (req, res) => {
   res.json(rows[0]);
 });
 
+// //上傳照片測試 1.0
+// router.post("/profilePhoto", upload.single("preImg"), async (req, res) => {
+//   // const output = {
+//   //   success: false,
+//   //   code: 0,
+//   //   error: "",
+//   // };
+
+//   // if (!res.locals.jwtData) {
+//   //   output.error = "沒有驗證";
+//   //   return res.json(output);
+//   // } else {
+//   //   output.jwtData = res.locals.jwtData; // 測試用
+//   // }
+
+//   // const member_id = res.locals.jwtData.id;
+//   const image = req.file.filename;
+//   const sql = "UPDATE `members` SET `member_profile`=? WHERE `member_id`=?";
+//   const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
+//   res.json(req.file);
+// });
+
 //上傳照片測試
 router.post("/profilePhoto", upload.single("preImg"), async (req, res) => {
   // const output = {
@@ -516,11 +601,30 @@ router.post("/profilePhoto", upload.single("preImg"), async (req, res) => {
   //   output.jwtData = res.locals.jwtData; // 測試用
   // }
 
-  // const member_id = res.locals.jwtData.id;
   const image = req.file.filename;
-  const sql = "UPDATE `members` SET `member_profile`=? WHERE `member_id`=?";
-  const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
-  res.json(req.file);
+  const member_id = res.locals.jwtData.id;
+  try {
+    // 先從資料庫中查詢舊照片檔案名稱
+    const selectSql = `SELECT member_profile FROM members WHERE member_id=?`;
+    const [selectRows] = await db.query(selectSql, [member_id]);
+    const oldFilename = selectRows[0].member_profile;
+
+    // 刪除舊照片檔案
+    if (oldFilename) {
+      const oldImagePath = path.join("public", "img", oldFilename);
+      fs.unlinkSync(oldImagePath);
+    }
+
+    // 更新資料庫中的照片檔案名稱
+    const updateSql =
+      "UPDATE `members` SET `member_profile`=? WHERE `member_id`=?";
+    await db.query(updateSql, [image, member_id]);
+
+    res.json({ success: true, message: "成功上傳新照片。" });
+  } catch (error) {
+    console.error("上傳照片時出錯:", error);
+    res.status(500).json({ success: false, message: "上傳照片時出錯。" });
+  }
 });
 
 // 照片刪除
@@ -677,6 +781,8 @@ router.post("/dailySignIn", multipartParser, async (req, res) => {
     // Insert into daily_signins and coupons_status in a single query
     const signInSql = `INSERT INTO daily_signins (member_id, signin_date) VALUES (?, NOW());`;
     const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (?, ?, '未使用', ?, ?);`;
+    // const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (12, ?, '未使用', ?, ?);`;
+    // const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (13, ?, '未使用', ?, ?);`;
 
     //檢查coupon value
 
