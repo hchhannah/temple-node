@@ -238,42 +238,30 @@ res.json(req.body)
 });
 
 //讀取圖片
-router.get("/profilePhoto", upload.single("preImg"), async (req, res) => {
-    const output = {
-      success: false,
-      code: 0,
-      error: "",
-    };
+// router.get("/profilePhoto", upload.single("preImg"), async (req, res) => {
+//     const output = {
+//       success: false,
+//       code: 0,
+//       error: "",
+//     };
   
-    if (!res.locals.jwtData) {
-      output.error = "沒有驗證";
-      return res.json(output);
-    } else {
-      output.jwtData = res.locals.jwtData; // 測試用
-    }
+//     if (!res.locals.jwtData) {
+//       output.error = "沒有驗證";
+//       return res.json(output);
+//     } else {
+//       output.jwtData = res.locals.jwtData; // 測試用
+//     }
   
-    const member_id = res.locals.jwtData.id;
-    // const image = req.file.filename;
-    const sql = `SELECT img FROM post WHERE sid=?`;
-    const [rows] = await db.query(sql, [member_id]);
-    res.json(rows[0]);
-  });
+//     const member_id = res.locals.jwtData.id;
+//     // const image = req.file.filename;
+//     const sql = `SELECT img FROM post WHERE sid=?`;
+//     const [rows] = await db.query(sql, [member_id]);
+//     res.json(rows[0]);
+//   });
 
 //新增圖片
 //後端上傳照片測試
 router.post("/:category/addphoto", upload.single("preImg"), async (req, res) => {
-    // const output = {
-    //   success: false,
-    //   code: 0,
-    //   error: "",
-    // };
-  
-    // if (!res.locals.jwtData) {
-    //   output.error = "沒有驗證";
-    //   return res.json(output);
-    // } else {
-    //   output.jwtData = res.locals.jwtData; // 測試用
-    // }
   
     // const member_id = res.locals.jwtData.id;
     const image = req.file.filename;
@@ -281,6 +269,28 @@ router.post("/:category/addphoto", upload.single("preImg"), async (req, res) => 
     const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
     res.json(req.file);
   });
+
+//讀出新增文章頁會員頭貼
+router.get("/:category/read_addpost_profilePhoto", upload.single("preImg"), async (req, res) => {});
+
+//單筆貼文會員頭貼
+router.get("/:category/:post/profilePhoto", upload.single("preImg"), async (req, res) => {});
+
+//文章排序和搜尋功能
+router.post("/:category/:post", async (req, res) => {});
+
+
+//讀取文章留言
+router.post("/:category/:pos/comment", async (req, res) => {});
+
+//新增文章留言
+router.post("/:category/:pos/addcomment", async (req, res) => {});
+
+
+//編輯貼文
+
+//刪除貼文
+
 //
 // router.post('/:category', async (req, res) => {
 //     const postCategory = req.params.category;
