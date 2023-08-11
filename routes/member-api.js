@@ -589,7 +589,7 @@ router.get("/wishList", async (req, res) => {
   const sql = `
   SELECT p.pid, p.cid, p.image, p.product_name, p.product_price, lp.lid
   FROM products p
-  JOIN like_products lp ON p.pid = lp.lid 
+  JOIN like_products lp ON p.pid = lp.pid 
   WHERE lp.member_id = ?
   ORDER BY lp.created_at DESC
 `;
@@ -598,7 +598,7 @@ router.get("/wishList", async (req, res) => {
   if (!rows.length) {
     return res.redirect(req.baseUrl);
   }
-  console.log(rows);
+  // console.log(rows);
   res.json(rows);
 });
 

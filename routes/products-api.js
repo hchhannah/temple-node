@@ -96,20 +96,7 @@ router.get('/favoriteMatch', async (req, res) => {
 
 // 購物車內容
 router.get('/cart',async(req,res)=>{
-    // const output = {
-    // success: false,
-    // code: 0,
-    // error: "",
-    // };
-
-    // if (!res.locals.jwtData) {
-    // output.error = "沒有驗證";
-    // return res.json(output);
-    // } else {
-    // output.jwtData = res.locals.jwtData; // 測試用
-    // }
-    
-    const member_id = '1'
+    const member_id = res.locals.jwtData.id;
     const sql = `SELECT p.* , c.quantity FROM products p JOIN cart c ON p.pid = c.pid WHERE member_id = ? ORDER BY c.created_at DESC;`
     const [data] = await db.query(sql,[member_id])
     res.json(data)
@@ -117,7 +104,7 @@ router.get('/cart',async(req,res)=>{
 
 // 下次再買內容
 router.get('/wannaBuy',async(req,res)=>{
-    const member_id = res.locals.jwtData.id
+    const member_id = res.locals.jwtData.id;
     const sql = `SELECT p.* , w.created_at FROM products p JOIN wanna_buy w ON p.pid = w.pid WHERE \`member_id\`=? ORDER BY \`wid\` DESC;`
     const [data] = await db.query(sql, [member_id])
     res.json(data)
@@ -126,8 +113,7 @@ router.get('/wannaBuy',async(req,res)=>{
 // 加入購物車
 router.post('/cart', async (req, res) => {
     const member_id = res.locals.jwtData.id;
-    const {count, pid , wannaBuy} = req.body.requestData;  
-    
+    const {count, pid , wannaBuy, wishlist} = req.body.requestData;  
     // 判斷有沒有在購物車裡
     const sql_count = `SELECT COUNT(1) FROM \`cart\` WHERE \`pid\`=? AND \`member_id\`=?;`
     const [result] =  await db.query(sql_count, [pid, member_id])
@@ -157,6 +143,10 @@ router.post('/cart', async (req, res) => {
     // 如果是從下次再買按加入購物車的話把他從下次再買刪除
     if(wannaBuy){
         const sql =`DELETE FROM \`wanna_buy\` WHERE \`pid\`=? AND \`member_id\`=?`
+        const [data] = await db.query(sql,[pid, member_id])
+    }
+    if(wishlist){
+        const sql =`DELETE FROM \`like_products\` WHERE \`pid\`=? AND \`member_id\`=?`
         const [data] = await db.query(sql,[pid, member_id])
     }
 })
@@ -238,6 +228,15 @@ router.delete('/wannaBuy', async(req,res)=>{
     const member_id = res.locals.jwtData.id
     const {pid} = req.body.requestData;
     const sql_delete = `DELETE FROM \`wanna_buy\` WHERE \`pid\`=? AND \`member_id\`=?`
+    const[deleted] = await db.query(sql_delete,[pid, member_id]) 
+    res.json(deleted)
+})
+
+// 從喜好商品刪除
+router.delete('/wishlist', async(req,res)=>{
+    const member_id = res.locals.jwtData.id
+    const {pid} = req.body.requestData;
+    const sql_delete = `DELETE FROM \`like_products\` WHERE \`pid\`=? AND \`member_id\`=?`
     const[deleted] = await db.query(sql_delete,[pid, member_id]) 
     res.json(deleted)
 })
@@ -410,7 +409,6 @@ router.get('/:category/:pid', async (req, res) => {
 // 動態路由瀏覽量加一
 router.put('/:category/:pid', async (req, res) => {
     const pid = req.params.pid;
-    console.log(pid);
     const sql = `UPDATE \`products\` SET \`browse_num\` = \`browse_num\`+1 WHERE \`pid\` =?`
     const [data] = await db.query(sql, [pid])
     res.json(data)
