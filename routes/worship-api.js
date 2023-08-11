@@ -62,7 +62,7 @@ router.post('/details', async (req, res) => {
 
 // 參拜大綱
 router.get('/summary', async (req, res) => {
-    const member_id = res.locals.jwtData.id;
+    const member_id = res.locals.jwtData.id
     const sql_notDone = `SELECT ws.* , wd.pid1, wd.pid2, wd.pid3 FROM worship_summary ws JOIN worship_details wd ON ws.wid = wd.wid WHERE \`member_id\`=? AND \`complete\`=0 ORDER BY \`day\` ASC`
     const [notDone] = await db.query(sql_notDone , [member_id])
     const sql_done = `SELECT ws.* , wd.pid1, wd.pid2, wd.pid3 FROM worship_summary ws JOIN worship_details wd ON ws.wid = wd.wid WHERE \`member_id\`=? AND \`complete\`=1 ORDER BY \`day\` ASC`
