@@ -201,7 +201,7 @@ router.post('/:category', async (req, res) => {
 //新增貼文
 router.post('/:category/add', async (req, res) => {
     const postCategory = req.params.category;
-    const {title, content} = req.body.requestData
+    const {title, content,img} = req.body.requestData
     const member_id = 'wayz'
     // const member_id = req.body.member_id
     const info = [
@@ -226,9 +226,9 @@ router.post('/:category/add', async (req, res) => {
     const postcategory_sid = info.findIndex((v)=>v.id===postCategory)
     
     const sql = `INSERT INTO post (member_id, title, content, publish_time, postcategory_sid, good, img)
-    VALUES (?, ?, ?, NOW(), ?, 0, 0);`
+    VALUES (?, ?, ?, NOW(), ?, 0, ?);`
 
-    const [data] = await db.query(sql, [member_id, title, content, postcategory_sid+1])
+    const [data] = await db.query(sql, [member_id, title, content, postcategory_sid+1, img])
 
     res.json(data)
 });
@@ -262,21 +262,70 @@ res.json(req.body)
 //新增圖片
 //後端上傳照片測試
 router.post("/:category/addphoto", upload.single("preImg"), async (req, res) => {
-  
-    // const member_id = res.locals.jwtData.id;
+    // const postCategory = req.params.category;
+    // // const post_category = req.params.category;
+    // const member_id = 'wayz';
     const image = req.file.filename;
-    // console.log(image,'ggtgtgtgtgtgt');
-    const sql = "UPDATE post SET `img`=? WHERE `sid`=?";
-    // const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
-    const [rows] = await db.query(sql, [image, 1]);
+    // console.log(image);
+    // const info = [
+    //     {
+    //     text: '八卦版',
+    //     id: 'gossip',
+    // },
+    //     {
+    //     text: '愛情版',
+    //     id: 'love',
+        
+    // },
+    //     {
+    //     text: '鬼故事版',
+    //     id: 'ghost',
+    // },
+    //     {
+    //     text: '籤詩版',
+    //     id: 'fortunesticks',
+    // },
+    // ]   
+    // const postcategory_sid = info.findIndex((v)=>v.id===postCategory)
+    // const insertQuery = `
+    //     INSERT INTO post (member_id, title, content, publish_time, postcategory_sid, good, img)
+    //     VALUES (?, '', '', NOW(), ?, 0, ?);
+    // `;
 
-    // res.json(req.file);
-    res.json({mesage:123});
+    try {
+        // const [data] = await db.query(insertQuery, [member_id, postcategory_sid + 1, image]);
+        // console.log(data);
+        res.json(image);
+        // // // console.log(image)
+        // res.json(image);
+    } catch (error) {
+        console.error("Error inserting data:", error);
+        res.status(500).json({ error: "An error occurred while inserting data." });
+    }
+});
+
+//讀取資料庫圖片檔名抓路徑
+router.get("/:category/getaddphoto", upload.single("preImg"), async (req, res) => {
+  
+    const output = {
+        success: false,
+        code: 0,
+        error: "",
+      };
+    
+      // const image = req.file.filename;
+      const sql = `SELECT img FROM post WHERE sid=?`;
+      const [rows] = await db.query(sql, [sid]);
+      res.json(rows[0]);
 
   });
 
 
-//前端讀取新貼文的照片
+
+
+//前端讀取照片
+
+
 
 //讀出新增文章頁會員頭貼
 router.get("/:category/read_addpost_profilePhoto", upload.single("preImg"), async (req, res) => {});
