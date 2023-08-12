@@ -316,6 +316,7 @@ router.get("/:category/getaddphoto", upload.single("preImg"), async (req, res) =
       // const image = req.file.filename;
       const sql = `SELECT img FROM post WHERE sid=?`;
       const [rows] = await db.query(sql, [sid]);
+      console.log(rows)
       res.json(rows[0]);
 
   });
