@@ -270,15 +270,15 @@ router.put('/order', async(req,res)=>{
 // 送出訂單
 router.post('/order',async(req,res)=>{
     const member_id = res.locals.jwtData.id
-    const {cartData, customerData, total, status} = req.body.requestData;
-
+    const {cartData, customerData, coupon, total, status} = req.body.requestData;
+    console.log(req.body.requestData);
     // for order_summary
-    const{customer_name, customer_phone, customer_email, customer_address, payment, delivery, invoice, coupon} = customerData
+    const{customer_name, customer_phone, customer_email, customer_address, payment, delivery} = customerData
     // Insert into order_summary
-    const sql_ord = `INSERT INTO \`order_summary\`(\`oid\`, \`member_id\`, \`total\`, \`customer_name\`, \`customer_email\`, \`customer_phone\`, \`customer_address\`, \`payment\`, \`delivery\`, \`invoice\`, \`coupon\`, \`created_at\`, \`status\`) VALUES (?,?,?,?,?,?,?,?,?,?,?,NOW(),?)`
+    const sql_ord = `INSERT INTO \`order_summary\`(\`oid\`, \`member_id\`, \`total\`, \`customer_name\`, \`customer_email\`, \`customer_phone\`, \`customer_address\`, \`payment\`, \`delivery\`, \`coupon\`, \`created_at\`, \`status\`) VALUES (?,?,?,?,?,?,?,?,?,?,NOW(),?)`
     // timestamp 當訂單編號
     const timestamp = new Date().getTime().toString();
-    const [ord] = await db.query(sql_ord,[timestamp, member_id, total, customer_name, customer_email, customer_phone, customer_address, payment, delivery, invoice, coupon, status])
+    const [ord] = await db.query(sql_ord,[timestamp, member_id, total, customer_name, customer_email, customer_phone, customer_address, payment, delivery, coupon, status])
     
     // Insert into order_details
     const sql_ordDetails = `INSERT INTO \`order_details\`( \`oid\`, \`quantity\`, \`pid\`, \`product_price\`) VALUES (?,?,?,?)`
@@ -297,6 +297,13 @@ router.post('/order',async(req,res)=>{
     })
     const sql_deleted = 'DELETE FROM cart WHERE pid IN (?) AND member_id = ?';
     const [deleted] = await db.query(sql_deleted, [pidArray, member_id]);
+    
+    // 如果有使用優惠券將狀態改為使用
+    if(coupon){
+        const sql_coupon = `UPDATE \`coupons_status\` SET \`usage_status\`='已使用' WHERE \`coupon_status_id\`=?`;
+        const [updateCoupon] = await db.query(sql_coupon, [coupon]);
+    }
+    
     res.json(ord)
 
 })
@@ -312,6 +319,15 @@ router.get('/orderDetails', async(req,res)=>{
     const sql = `SELECT \`o\`.*, \`p\`.\`product_name\`, \`p\`.\`image\` FROM \`order_details\` o JOIN \`products\` p ON o.\`pid\` = p.pid WHERE o.oid=?;`
     const [data] = await db.query(sql, [oid[0].oid])
     
+    res.json(data)
+})
+
+// 優惠券
+router.get('/coupons',async (req,res)=>{
+    const member_id = res.locals.jwtData.id
+    const sql = `SELECT cs.\`expiration_date\`, cs.\`coupon_status_id\` , c.* FROM coupons_status cs JOIN coupons c ON cs.coupon_id = c.coupon_id WHERE cs.\`member_id\`=? AND cs.
+    \`usage_status\`='未使用' ORDER BY  c.\`coupon_value\` DESC, cs.\`expiration_date\` ASC`
+    const [data] = await db.query(sql,[member_id])
     res.json(data)
 })
 
