@@ -102,7 +102,7 @@ router.post("/login", async (req, res) => {
     error: "",
   };
   if (!req.body.member_account || !req.body.member_password) {
-    output.error = "欄位資料不足哈哈哈";
+    output.error = "請記得填寫所有欄位";
     return res.json(output);
   }
 
@@ -160,7 +160,10 @@ router.post("/signUp", multipartParser, async (req, res) => {
   const emailExists = emailResult[0].count > 0;
 
   if (emailExists) {
-    return res.status(409).json({ error: "該 email 已被使用。" });
+    return res.status(409).json({
+      part: "email",
+      error: `抱歉，${req.body.member_account}已被使用`,
+    });
   }
 
   //將密碼用bcrypt編碼
@@ -281,11 +284,17 @@ router.put("/personalinfo", async (req, res) => {
     const { emailCount, phoneCount } = result[0];
 
     if (emailCount > 0) {
-      return res.status(409).json({ error: "該 email 已被使用。" });
+      return res.status(409).json({
+        part: "email",
+        error: `抱歉，${req.body.member_account}已被使用`,
+      });
     }
 
     if (phoneCount > 0) {
-      return res.status(409).json({ error: "該手機號碼已被使用。" });
+      return res.status(409).json({
+        part: "phone",
+        error: `抱歉，${req.body.member_phone}已被使用`,
+      });
     }
 
     // 使用 "UPDATE ... SET ? WHERE ..." 語法並使用 dataObj 和 member_id
@@ -392,7 +401,7 @@ router.get("/allCoupons", async (req, res) => {
   FROM coupons c 
   JOIN coupons_status cs ON c.coupon_id = cs.coupon_id 
   WHERE cs.member_id=?  
-  ORDER BY cs. start_date DESC`;
+  ORDER BY cs. created_at DESC`;
 
   const [rows] = await db.query(sql, [member_id]);
 
@@ -429,7 +438,7 @@ router.get("/availableCoupons", async (req, res) => {
   const [updated] = await db.query(updateSql, [member_id]);
 
   const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
-  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '未使用' AND cs.member_id=?  ORDER BY cs. start_date DESC`;
+  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '未使用' AND cs.member_id=?  ORDER BY cs. created_at DESC`;
   const [rows] = await db.query(sql, [member_id]);
 
   if (!rows.length) {
@@ -465,7 +474,7 @@ router.get("/usedCoupons", async (req, res) => {
   const [updated] = await db.query(updateSql, [member_id]);
 
   const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
-  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '已使用' AND cs.member_id=?  ORDER BY cs. start_date DESC`;
+  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '已使用' AND cs.member_id=?  ORDER BY cs. created_at DESC`;
   const [rows] = await db.query(sql, [member_id]);
 
   if (!rows.length) {
@@ -500,7 +509,7 @@ router.get("/expiredCoupons", async (req, res) => {
   const [updated] = await db.query(updateSql, [member_id]);
 
   const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
-  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '已過期' AND cs.member_id=?  ORDER BY cs. start_date DESC`;
+  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '已過期' AND cs.member_id=?  ORDER BY cs. created_at DESC`;
   const [rows] = await db.query(sql, [member_id]);
 
   if (!rows.length) {
