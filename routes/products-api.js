@@ -321,6 +321,22 @@ router.get('/orderDetails', async(req,res)=>{
     res.json(data)
 })
 
+//訂單詳情details資料
+router.post('/orderDetails', async(req,res)=>{
+    const member_id = res.locals.jwtData.id
+    const {oid} = req.body.requestData
+    // 根據訂單編號去篩選產品資料
+    // 根據pid篩選product_name, image
+    const sql = `SELECT \`o\`.*, \`p\`.\`product_name\`, \`p\`.\`image\` FROM \`order_details\` o JOIN \`products\` p ON o.\`pid\` = p.pid WHERE o.oid=?;`
+    const [data] = await db.query(sql, [oid])
+    const sql_couponId = `SELECT \`coupon\` FROM \`order_summary\` WHERE \`oid\`=?`
+    const [couponId] = await db.query(sql_couponId,[oid])
+    const sql_coupon = `SELECT \`coupon_value\` FROM \`coupons\` WHERE \`coupon_id\`=?`
+    const [coupon] = await db.query(sql_coupon,[couponId[0].coupon])
+    const output= [data, coupon]
+    res.json(output)
+})
+
 // 優惠券
 router.get('/coupons',async (req,res)=>{
     const member_id = res.locals.jwtData.id
