@@ -271,7 +271,6 @@ router.put('/order', async(req,res)=>{
 router.post('/order',async(req,res)=>{
     const member_id = res.locals.jwtData.id
     const {cartData, customerData, coupon, total, status} = req.body.requestData;
-    console.log(req.body.requestData);
     // for order_summary
     const{customer_name, customer_phone, customer_email, customer_address, payment, delivery} = customerData
     // Insert into order_summary
