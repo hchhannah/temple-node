@@ -371,8 +371,11 @@ router.put("/personalinfo", async (req, res) => {
 });
 
 //  優惠券 所有的
-router.get("/allCoupons", async (req, res) => {
+router.post("/allCoupons", async (req, res) => {
+  // 0813改成POST
   // let { sid } = req.params;
+  const { sortOrder } = req.body;
+  //0813 body要加
 
   const output = {
     success: false,
@@ -401,7 +404,7 @@ router.get("/allCoupons", async (req, res) => {
   FROM coupons c 
   JOIN coupons_status cs ON c.coupon_id = cs.coupon_id 
   WHERE cs.member_id=?  
-  ORDER BY cs. created_at DESC`;
+  ORDER BY cs.created_at ${sortOrder || "DESC"}`; // Use sortOrder parameter in the ORDER BY clause 0813
 
   const [rows] = await db.query(sql, [member_id]);
 
