@@ -202,7 +202,7 @@ router.post('/:category', async (req, res) => {
 router.post('/:category/add', async (req, res) => {
     const postCategory = req.params.category;
     const {title, content,img} = req.body.requestData
-    const member_id = 'wayz'
+    const member_id = '1'
     // const member_id = req.body.member_id
     const info = [
         {
@@ -304,7 +304,7 @@ router.post("/:category/addphoto", upload.single("preImg"), async (req, res) => 
     }
 });
 
-//讀取資料庫圖片檔名抓路徑
+//讀取資料庫圖片檔名抓路徑（用不到）
 router.get("/:category/getaddphoto", upload.single("preImg"), async (req, res) => {
   
     const output = {
@@ -324,9 +324,6 @@ router.get("/:category/getaddphoto", upload.single("preImg"), async (req, res) =
 
 
 
-//前端讀取照片
-
-
 
 //讀出新增文章頁會員頭貼
 router.get("/:category/read_addpost_profilePhoto", upload.single("preImg"), async (req, res) => {});
@@ -339,10 +336,87 @@ router.post("/:category/:post", async (req, res) => {});
 
 
 //讀取文章留言
-router.post("/:category/:pos/comment", async (req, res) => {});
+router.get("/:category/:post_sid/comments", async (req, res) => {
+    const output = {
+      success: false,
+      error: "",
+      comments: [],
+    };
+    
+    const post_sid = parseInt(req.params.post_sid) || 0;
+  
+    if (!post_sid) {
+      output.error = "沒有 sid !";
+      return res.json(output);
+    }
+  
+    try {
+      // 在這裡根據 post_sid 查詢該帖子的評論資訊
+      const sql = `SELECT * FROM comment WHERE post_sid = ?`;
+      const [rows] = await db.query(sql, [post_sid]);
+  
+      rows.forEach((i) => {
+        i.comment_time = dayjs(i.comment_time).format("YYYY-MM-DD-HH:mm:ss");
+      });
+  
+      if (rows.length) {
+        output.success = true;
+        output.comments = rows;
+      } else {
+        output.error = "沒有評論!";
+      }
+  
+      res.json(output);
+    } catch (error) {
+      console.error("An error occurred:", error);
+      output.error = "發生錯誤!";
+      res.json(output);
+    }
+  });
+  
 
 //新增文章留言
-router.post("/:category/:pos/addcomment", async (req, res) => {});
+router.post("/:category/:post_sid/add-comment", async (req, res) => {
+    const member_id = '1'
+    const output = {
+      success: false,
+      error: "",
+      row: null,
+    };
+  
+    const post_sid = parseInt(req.params.post_sid) || 0;
+    const comment = req.body.comment;
+  
+    if (!post_sid) {
+      output.error = "沒有 sid !";
+      return res.json(output);
+    }
+  
+    try {
+      const sql = `INSERT INTO comment (post_sid, comment, comment_time, member_id) VALUES (?, ?, NOW(), ?)`;
+      const [result] = await db.query(sql, [post_sid, comment, member_id]);
+    
+      if (result.affectedRows === 1) {
+        output.success = true;
+        // 建立新增評論後的資訊物件
+        const newCommentInfo = {
+          post_sid: post_sid,
+          comment: comment,
+          comment_time: new Date().toISOString(), // 使用現在的時間
+          member_id: member_id, 
+        };
+        output.row = newCommentInfo;
+      } else {
+        output.error = "評論新增失敗!";
+      }
+    
+      res.json(output);
+    } catch (error) {
+      console.error("An error occurred:", error);
+      output.error = "發生錯誤!";
+      res.json(output);
+    }
+  });
 
 
 //編輯貼文
