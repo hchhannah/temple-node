@@ -985,4 +985,106 @@ router.post("/dailySignIn", multipartParser, async (req, res) => {
   // });
 });
 
+//卡牌遊戲 遊戲紀錄相關
+router.post("/cardGame", async (req, res) => {
+  const { points } = req.body;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  // // 檢查今天是否已經遊玩超過次數
+  // const checkPlayingStatusQuery =
+  //   "SELECT COUNT(*) AS count FROM `daily_signins` WHERE `member_id` = ? AND DATE(`signin_date`) = CURDATE()";
+  // const [checkResult] = await db.query(checkPlayingStatusQuery, [member_id]);
+  // const alreadyPlayed3 = checkResult[0].count > 0;
+
+  // if (alreadyPlayed3) {
+  //   return res.status(409).json({ error: "今天超過遊玩次數囉" });
+  // }
+
+  const sql = `INSERT INTO card_game_status (member_id, card_game_date, points) VALUES (?, NOW(), ?);`;
+  const [rows] = await db.query(sql, [member_id, points]);
+
+  if (!rows.length) {
+    // If the result is empty, send the "尚未簽到記錄" message
+    const output = {
+      success: true,
+      data: "尚未遊玩記錄",
+    };
+    return res.json(output);
+  }
+
+  res.json(rows);
+  console.log(rows);
+});
+
+//卡牌遊戲 優惠券相關
+router.post("/cardGameCoupon", async (req, res) => {
+  const { points } = req.body;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+  //日期格式
+  const today = new Date();
+  const startDate = today.toISOString().slice(0, 10);
+
+  // Calculate expiration date (30 days from today)
+  const expirationDate = new Date(today);
+  expirationDate.setDate(expirationDate.getDate() + 30);
+  const formattedExpirationDate = expirationDate.toISOString().slice(0, 10);
+
+  // // 檢查今天是否已經領過
+  // const checkPlayingStatusQuery =
+  //   "SELECT COUNT(*) AS count FROM `daily_signins` WHERE `member_id` = ? AND DATE(`signin_date`) = CURDATE()";
+  // const [checkResult] = await db.query(checkPlayingStatusQuery, [member_id]);
+  // const alreadyPlayed3 = checkResult[0].count > 0;
+
+  // if (alreadyPlayed3) {
+  //   return res.status(409).json({ error: "今天超過遊玩次數囉" });
+  // }
+
+  const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (14, ?, '未使用', ?, ?);`;
+  const [rows] = await db.query(couponSql, [
+    member_id,
+    startDate,
+    formattedExpirationDate,
+  ]);
+
+  if (!rows.length) {
+    // If the result is empty, send the "尚未遊玩記錄" message
+    const output = {
+      success: true,
+      data: "尚未遊玩記錄",
+    };
+    return res.json(output);
+  }
+
+  res.json(rows);
+  console.log(rows);
+});
+
 module.exports = router;
