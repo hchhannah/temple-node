@@ -193,7 +193,7 @@ router.get("/loveB-2", async (req, res) =>{
         page :1 , 
         rows :[]
     };
-    const perPage = 8; //每一頁幾筆資料
+    const perPage = 800; //每一頁幾筆資料
     let keyword = req.query.keyword || '';
     let page = req.query.page ? parseInt(req.query.page) : 1;
     if(!page || page<1) {
