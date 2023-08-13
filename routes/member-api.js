@@ -725,7 +725,7 @@ router.post("/studyTickets", upload.single("preImg"), async (req, res) => {
     // 先從資料庫中查詢舊准考證檔案名稱
     const selectSql = `SELECT Ticket_Img FROM study_tickets WHERE member_id=?`;
     const [selectRows] = await db.query(selectSql, [member_id]);
-    const oldFilename = selectRows[0].study_tickets;
+    const oldFilename = selectRows[0].Ticket_Img;
 
     // 刪除舊准考證檔案
     if (oldFilename) {
@@ -765,7 +765,7 @@ router.delete("/studyTickets", async (req, res) => {
     // 先從資料庫中查詢個人檔案准考證記錄
     const selectSql = `SELECT Ticket_Img FROM study_tickets WHERE member_id=?`;
     const [rows] = await db.query(selectSql, [member_id]);
-    const filename = rows[0].study_tickets;
+    const filename = rows[0].Ticket_Img;
 
     // 刪除資料庫中的個人檔案准考證記錄
     const updateSql = `UPDATE study_tickets SET Ticket_Img=null WHERE member_id=?`;
