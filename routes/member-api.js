@@ -679,6 +679,114 @@ router.delete("/profilePhoto", async (req, res) => {
   }
 });
 
+// 讀出准考證
+router.get("/studyTickets", upload.single("preImg"), async (req, res) => {
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+  // const image = req.file.filename;
+  const sql = `SELECT st.*, m.member_name
+  FROM study_tickets st
+  JOIN members m ON st.member_id = m.member_id 
+  WHERE st.member_id = ?; `;
+  const [rows] = await db.query(sql, [member_id]);
+  res.json(rows[0]);
+});
+
+//上傳准考證
+router.post("/studyTickets", upload.single("preImg"), async (req, res) => {
+  // const output = {
+  //   success: false,
+  //   code: 0,
+  //   error: "",
+  // };
+
+  // if (!res.locals.jwtData) {
+  //   output.error = "沒有驗證";
+  //   return res.json(output);
+  // } else {
+  //   output.jwtData = res.locals.jwtData; // 測試用
+  // }
+
+  const image = req.file.filename;
+  const member_id = res.locals.jwtData.id;
+  try {
+    // 先從資料庫中查詢舊准考證檔案名稱
+    const selectSql = `SELECT Ticket_Img FROM study_tickets WHERE member_id=?`;
+    const [selectRows] = await db.query(selectSql, [member_id]);
+    const oldFilename = selectRows[0].study_tickets;
+
+    // 刪除舊准考證檔案
+    if (oldFilename) {
+      const oldImagePath = path.join("public", "img", oldFilename);
+      fs.unlinkSync(oldImagePath);
+    }
+
+    // 更新資料庫中的准考證檔案名稱
+    const updateSql =
+      "UPDATE `study_tickets` SET `Ticket_Img`=? WHERE `member_id`=?";
+    await db.query(updateSql, [image, member_id]);
+
+    res.json({ success: true, message: "成功上傳准考證。" });
+  } catch (error) {
+    console.error("上傳准考證時出錯:", error);
+    res.status(500).json({ success: false, message: "上傳准考證時出錯。" });
+  }
+});
+
+// 准考證刪除
+router.delete("/studyTickets", async (req, res) => {
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+  const member_id = res.locals.jwtData.id;
+
+  try {
+    // 先從資料庫中查詢個人檔案准考證記錄
+    const selectSql = `SELECT Ticket_Img FROM study_tickets WHERE member_id=?`;
+    const [rows] = await db.query(selectSql, [member_id]);
+    const filename = rows[0].study_tickets;
+
+    // 刪除資料庫中的個人檔案准考證記錄
+    const updateSql = `UPDATE study_tickets SET Ticket_Img=null WHERE member_id=?`;
+    await db.query(updateSql, [member_id]);
+
+    // // 從儲存位置刪除實際的圖片檔案
+    if (filename) {
+      // const imagePath = path.join(__dirname, "..", "public", "img", filename);
+      const imagePath = path.join("public", "img", filename);
+      fs.unlinkSync(imagePath);
+    }
+
+    res.json({ success: true, message: "成功刪除個人檔案准考證。" });
+  } catch (error) {
+    console.error("刪除個人檔案准考證時出錯:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "刪除個人檔案准考證時出錯。" });
+  }
+});
+
 //喜好商品
 
 router.get("/wishList", async (req, res) => {
