@@ -10,7 +10,7 @@ const decodeZhuyin = require(__dirname+'/../modules/decodeZhuyin.js'); // 載入
 // get(render) put(update) delete post
 const cjst = require(__dirname+'/../lib/cjst.js');
 
-const keywordArr = ['洋芋片','樂事', '王子麵', '蘇打餅', '牛奶餅', '沙琪瑪', '泡芙', '夾心酥', '蛋黃派', '煎餅', '糖果','不二家', '軟糖', '牛奶糖', '喉糖', '巧克力', '泡麵', '罐頭', '堅果', '礦泉水', '紅茶', '綠茶', '烏龍茶', '汽水', '八寶粥', '果汁', '鳳梨酥', '蛋黃酥', '牛舌餅', '貢糖', '肉鬆']
+const keywordArr = ['洋芋片','樂事', '王子麵', '蘇打餅', '牛奶餅', '沙琪瑪', '泡芙', '夾心酥', '蛋黃派', '煎餅', '糖果','不二家', '軟糖', '牛奶糖', '喉糖', '巧克力', '泡麵', '罐頭', '堅果', '礦泉水', '紅茶', '綠茶', '烏龍茶', '汽水', '原萃','八寶粥', '果汁', '鳳梨酥', '蛋黃酥', '牛舌餅', '貢糖', '肉鬆','可樂','雪碧','維大力','小熊']
 
 const tempkeyword = keywordArr.map((v,i)=>{
     return cjst.cjst.chineseToZhuyin(v)
