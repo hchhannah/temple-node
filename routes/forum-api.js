@@ -101,7 +101,7 @@ const multipartParser = upload.none();
 //按讚
 router.post('/good', async (req,res)=>{
     const {sid} = req.body.requestData
-    const member_id = '1'
+    const member_id = res.locals.jwtData.id
     const sql_insert = `INSERT INTO \`good\`(\`post_sid\`, \`member_id\`) VALUES (?,?)`
     const [data] = await db.query(sql_insert, [sid, member_id])
     const sql_update = `UPDATE \`post\` SET \`good\`=\`good\`+1 WHERE \`sid\`=?`
@@ -112,7 +112,7 @@ router.post('/good', async (req,res)=>{
 //收回讚
 router.delete('/good', async (req,res)=>{
     const {sid} = req.body.requestData
-    const member_id = '1'
+    const member_id = res.locals.jwtData.id
     const sql = `DELETE FROM \`good\` WHERE \`post_sid\`=? AND \`member_id\`= ?`
     const [data] = await db.query(sql, [sid, member_id])
     const sql_update = `UPDATE \`post\` SET \`good\`=\`good\`-1 WHERE \`sid\`=?`
@@ -123,7 +123,7 @@ router.delete('/good', async (req,res)=>{
 //珍藏
 router.post('/collect', async (req,res)=>{
     const {sid} = req.body.requestData
-    const member_id = '1'
+    const member_id = res.locals.jwtData.id
     const sql_insert = `INSERT INTO \`postcollect\`( \`post_sid\`, \`member_id\`) VALUES (?,?)`
     const [data] = await db.query(sql_insert, [sid, member_id])
     // const sql_update = `UPDATE \`post\` SET \`good\`=\`good\`+1 WHERE \`sid\`=?`
@@ -134,7 +134,7 @@ router.post('/collect', async (req,res)=>{
 //取消珍藏
 router.delete('/collect', async (req,res)=>{
     const {sid} = req.body.requestData
-    const member_id = '1'
+    const member_id = res.locals.jwtData.id
     const sql = `DELETE FROM \`postcollect\` WHERE \`post_sid\`=? AND \`member_id\`=?`
     const [data] = await db.query(sql, [sid, member_id])
     // const sql_update = `UPDATE \`post\` SET \`good\`=\`good\`-1 WHERE \`sid\`=?`
@@ -145,7 +145,7 @@ router.delete('/collect', async (req,res)=>{
 //抓各版貼文
 router.post('/:category', async (req, res) => {
     const postCategory = req.params.category;
-    const member_id ='1'
+    const member_id = res.locals.jwtData.id;
     const info = [
         {
         text: '八卦版',
@@ -222,7 +222,7 @@ console.log(totalRows);
 router.post('/:category/add', async (req, res) => {
     const postCategory = req.params.category;
     const {title, content,img} = req.body.requestData
-    const member_id = '1'
+    const member_id = res.locals.jwtData.id
     // const member_id = req.body.member_id
     const info = [
         {
@@ -393,7 +393,7 @@ router.get("/:category/:post_sid/comments", async (req, res) => {
 
 //新增文章留言
 router.post("/:category/:post_sid/add-comment", async (req, res) => {
-    const member_id = '1'
+  const member_id = res.locals.jwtData.id
     const output = {
       success: false,
       error: "",
