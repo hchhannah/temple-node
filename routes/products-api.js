@@ -4,7 +4,47 @@ const router = express.Router();
 const db = require(__dirname+'/../modules/mysql2');
 const upload = require(__dirname+'/../modules/img-upload.js');
 const multipartParser = upload.none();
+
+const decodeZhuyin = require(__dirname+'/../modules/decodeZhuyin.js'); // 載入解碼函數
+
 // get(render) put(update) delete post
+const cjst = require(__dirname+'/../lib/cjst.js');
+
+const keywordArr = ['洋芋片','樂事', '王子麵', '蘇打餅', '牛奶餅', '沙琪瑪', '泡芙', '夾心酥', '蛋黃派', '煎餅', '糖果','不二家', '軟糖', '牛奶糖', '喉糖', '巧克力', '泡麵', '罐頭', '堅果', '礦泉水', '紅茶', '綠茶', '烏龍茶', '汽水', '八寶粥', '果汁', '鳳梨酥', '蛋黃酥', '牛舌餅', '貢糖', '肉鬆']
+
+const tempkeyword = keywordArr.map((v,i)=>{
+    return cjst.cjst.chineseToZhuyin(v)
+})
+
+const decodedAll=tempkeyword.map((v,i)=>{
+    
+const getCombinations=(arr)=>{
+    const result = [[]];
+
+    for (const item of arr) {
+      const currentLength = result.length;
+      for (let i = 0; i < currentLength; i++) {
+        const combination = result[i].slice();
+        combination.push(item);
+        result.push(combination);
+      }
+    }
+  
+    return result;
+}
+  
+
+  const originalList = v
+
+  const combinedList = getCombinations(originalList);
+  
+  const transformedList = combinedList.map(combination => {
+    const combinedSyllable = combination.map(sublist => sublist.join('')).join('');
+    return [combinedSyllable];
+  });
+  return transformedList
+})
+  
 
 // 商品首頁輪播熱銷TOP10
 router.post('/', async (req, res) => {
@@ -349,7 +389,7 @@ router.get('/coupons',async (req,res)=>{
 // 動態路由來抓類別資料
 router.post('/:category',async (req,res)=>{
     const category = req.params.category
-    const {page, perPage, sort, orderBy, keyword} = req.body.requestData;
+    let {page, perPage, sort, orderBy, keyword} = req.body.requestData;
     let totalPages = 0
     let where = 'WHERE 1'
     
@@ -361,6 +401,18 @@ router.post('/:category',async (req,res)=>{
     }
    
     if(keyword) {
+        const decodedResult = decodeZhuyin(keyword); // 使用解碼函數解碼
+        
+        // 對照
+        if(decodedResult){
+            decodedAll.map((v,i)=>{
+                v.map((sv,si)=>{
+                    if(decodedResult===sv[0]){
+                        keyword = keywordArr[i]
+                    }
+                })
+            })
+        }
         const kw_escaped = db.escape('%'+keyword+'%');
         where += ` AND ( 
         \`product_name\` LIKE ${kw_escaped} 
@@ -397,7 +449,7 @@ router.post('/:category',async (req,res)=>{
             totalPages: totalPages,
         }
         const success ={success: totalRows[0]['COUNT(1)']}
-        let output = {data, pagination, success} 
+        let output = {data, pagination, success, keyword: keyword} 
         res.json(output)
     }else{
         const output = {success:0}
