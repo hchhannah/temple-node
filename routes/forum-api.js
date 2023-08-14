@@ -5,89 +5,84 @@ const router = express.Router();
 const upload = require(__dirname + '/../modules/img-upload');
 const multipartParser = upload.none();
 
-router.get("/", async (req, res) =>{
-    let output = {
-        redirect : '',
-        totalRows :0, 
-        perPage :6, 
-        totalPages :0, 
-        page :1 , 
-        rows :[]
-    };
-    const perPage = 6;
-    let keyword = req.query.keyword || '';
-    let page = req.query.page ? parseInt(req.query.page) : 1;
-    if(!page || page<1) {
-        output.redirect = req.baseUrl;
-        return res.json(output);
-    };
 
-    //關鍵字搜尋
-    let where = 'WHERE 1';
-    // let keyword = req.query.keyword || '';
-    if(keyword) {
-        const kw_escaped = db.escape('%'+keyword+'%')
-        where += ` AND (
-        \`title\` LIKE ${ kw_escaped } 
-        OR
-        \`content\` LIKE ${ kw_escaped }
-        )
-        `;
-    }
+// //keyword search
+// router.post('/:category', async (req, res) => {
+//     const postCategory = req.params.category;
+//     const member_id = '1';
+//     const info = [
+//       {
+//         text: '八卦版',
+//         id: 'gossip',
+//       },
+//       {
+//         text: '愛情版',
+//         id: 'love',
+//       },
+//       {
+//         text: '鬼故事版',
+//         id: 'ghost',
+//       },
+//       {
+//         text: '籤詩版',
+//         id: 'fortunesticks',
+//       },
+//     ];
+//     const sid = info.findIndex((v) => v.id === postCategory);
+    
+//     // 關鍵字搜尋相關
+//     const keyword = req.query.keyword || ''; // 從請求中獲取關鍵字
+//     let where = 'WHERE p.postcategory_sid = ?';
 
-    // where += " AND `post_category` = '1'";
-    const t_sql = `SELECT COUNT(1) totalRows FROM post ${where}`;
-    const [[{totalRows}]] = await db.query(t_sql);
-    let totalPages = 0;
-    let rows = [];
-    if(totalRows){
-        totalPages = Math.ceil(totalRows/perPage);
-        if(page > totalPages) {
-            output.redirect = req.baseUrl + '?page=' + totalPages;
-            return res.json(output);
-        };
-        const sql = ` SELECT * FROM post ${where} LIMIT ${perPage * (page-1)}, ${perPage} `;
-        [rows] = await db.query(sql);
-        rows.forEach(i => {
-            i.publish_time = dayjs(i.publish_time).format('YYYY-MM-DD-HH:mm:ss');
-        });
-    }
-    output = {...output, totalRows, perPage, totalPages, page, rows};
-    return res.json(output);
-    // res.json({totalRows, perPage, totalPages, page, rows});
-});
+//     if (keyword) {
+//       const kw_escaped = db.escape('%' + keyword + '%');
+//       where += ` AND (
+//         \`title\` LIKE ${kw_escaped}
+//         OR
+//         \`content\` LIKE ${kw_escaped}
+//       )`;
+//     }
+  
+//     const sql = `SELECT p.*, c.type_name 
+//       FROM post p 
+//       JOIN postcategory c ON p.postcategory_sid = c.sid 
+//       ${where}  
+//       LIMIT ?, ?`;
+  
+//     const perPage = 6;
+//     const page = req.body.page || 1;
+//     const offset = (page - 1) * perPage;
+  
+//     try {
+//       // 執行 SQL 查詢
+//       const [data] = await db.query(sql, [sid + 1, offset, perPage]);
+//       data.forEach((i) => {
+//         i.publish_time = dayjs(i.publish_time).format('YYYY-MM-DD-HH:mm:ss');
+//       });
+  
+//       const [[{ totalRows }]] = await db.query(
+//         `SELECT COUNT(*) as totalRows FROM post WHERE postcategory_sid = ? `,
+//         [sid + 1]
+//       );
+//       const totalPages = Math.ceil(totalRows / perPage);
+  
+//       const sql_good = `SELECT * FROM \`good\` WHERE \`member_id\`=?`;
+//       const [good] = await db.query(sql_good, [member_id]);
+  
+//       const sql_collect = `SELECT * FROM \`postcollect\` WHERE \`member_id\`=?`;
+//       const [collect] = await db.query(sql_collect, [member_id]);
+  
+//       const output = [data, { totalPages: totalPages }, good, collect];
+//       res.json(output);
+//     } catch (error) {
+//       console.error('An error occurred:', error);
+//       res.json({
+//         success: false,
+//         error: '發生錯誤!',
+//       });
+//     }
+//   });
 
-//抓單筆貼文
-router.get("/:category/:post_sid", async(req, res)=>{
-
-    const output = {
-        success: false,
-        error:"",
-        row:null
-    };
-    const post_sid = parseInt(req.params.post_sid) || 0;
-    // console.log(post_sid)
-    if(! post_sid){
-    //沒有sid
-    output.error = '沒有 sid !';
-        } else {
-        const sql = `SELECT * FROM post WHERE sid=?`;
-        const [rows] = await db.query(sql,[post_sid]);
-        rows.forEach(i => {
-            i.publish_time = dayjs(i.publish_time).format('YYYY-MM-DD-HH:mm:ss');
-        });
-        if(rows.length){
-        output.success = true;
-        output.row = rows[0];
-        } else {
-    //沒有資料
-            output.error = '沒有資料 !';
-        }
-        
-    }
-    res.json(output);
-
-    });
     
 // router.use((req, res, next)=>{
 //     res.locals.title = '八卦版' + res.locals.title;
@@ -172,37 +167,62 @@ router.post('/:category', async (req, res) => {
 ]   
     const sid = info.findIndex((v)=>v.id===postCategory)
     
-    const sql = ` SELECT p.*, c.type_name 
-    FROM post p 
-    JOIN postcategory c ON p.postcategory_sid = c.sid 
-    WHERE p.postcategory_sid = ? 
-    LIMIT ?, ?`
-
+    // 關鍵字搜尋相關
+    // let keyword = req.query.keyword || ''; // 從請求中獲取關鍵字
+    // let where = 'WHERE p.postcategory_sid = ?';
+    // const sql = ` SELECT p.*, c.type_name 
+    // FROM post p 
+    // JOIN postcategory c ON p.postcategory_sid = c.sid 
+    // ${where}
+    // LIMIT ?, ?`
+    
     const perPage = 6;
-    const page = req.body.page || 1;
-    const offset = (page - 1) * perPage;
-    const [data] = await db.query(sql,[sid+1,offset,perPage])
-    data.forEach(i => {
-        i.publish_time = dayjs(i.publish_time).format('YYYY-MM-DD-HH:mm:ss');
-    });
-    const [totalRows] = await db.query('SELECT COUNT(*) as totalRows FROM post WHERE postcategory_sid = ?', [sid+1]);
-    const totalPages = Math.ceil(totalRows[0].totalRows / perPage);
+let page = req.body.page ? parseInt(req.body.page) : 1;
 
+let keyword = req.query.keyword || ''; // 從請求中獲取關鍵字
+let where = 'WHERE postcategory_sid = ?';
+
+if (keyword) {
+  const kw_escaped = db.escape('%'+ keyword+'%');
+  where += ` AND (
+    \`title\` LIKE ${kw_escaped}
+    OR
+    \`content\` LIKE ${kw_escaped}
+  )`;
+}
+
+const sql = `SELECT p.*, c.type_name FROM post p JOIN postcategory c ON p.postcategory_sid = c.sid ${where} LIMIT ${
+    perPage * (page - 1)
+  }, ${perPage}`;
+
+const offset = (page - 1) * perPage;
+const [data] = await db.query(sql,[sid+1,offset,perPage]);
+
+data.forEach(i => {
+    i.publish_time = dayjs(i.publish_time).format('YYYY-MM-DD-HH:mm:ss');
+});
+
+const [totalRows] = await db.query(`SELECT COUNT(*) as totalRows FROM post ${where}`, [sid+1]);
+const totalPages = Math.ceil(totalRows[0].totalRows / perPage);
+console.log(totalRows);
+
+    //todo
+    
     const sql_good =`SELECT * FROM \`good\` WHERE \`member_id\`=?`
     const [good] = await db.query(sql_good,[member_id])
 
     const sql_collect =`SELECT * FROM \`postcollect\` WHERE \`member_id\`=?`
     const [collect] = await db.query(sql_collect,[member_id])
 
-    const output  = [data, {totalPages: totalPages}, good, collect] 
+    const output  = [data, {totalPages: totalPages}, good, collect, keyword] 
     res.json(output)
 });
 
 //新增貼文
 router.post('/:category/add', async (req, res) => {
     const postCategory = req.params.category;
-    const {title, content} = req.body.requestData
-    const member_id = 'wayz'
+    const {title, content,img} = req.body.requestData
+    const member_id = '1'
     // const member_id = req.body.member_id
     const info = [
         {
@@ -226,61 +246,231 @@ router.post('/:category/add', async (req, res) => {
     const postcategory_sid = info.findIndex((v)=>v.id===postCategory)
     
     const sql = `INSERT INTO post (member_id, title, content, publish_time, postcategory_sid, good, img)
-    VALUES (?, ?, ?, NOW(), ?, 0, 0);`
+    VALUES (?, ?, ?, NOW(), ?, 0, ?);`
 
-    const [data] = await db.query(sql, [member_id, title, content, postcategory_sid+1])
+    const [data] = await db.query(sql, [member_id, title, content, postcategory_sid+1, img])
 
     res.json(data)
 });
 
-router.post('/:category/userid', async (req, res) => {
-res.json(req.body)
-});
+// router.post('/:category/userid', async (req, res) => {
+// res.json(req.body)
+// });
 
 //讀取圖片
-router.get("/profilePhoto", upload.single("preImg"), async (req, res) => {
-    const output = {
-      success: false,
-      code: 0,
-      error: "",
-    };
+// router.get("/profilePhoto", upload.single("preImg"), async (req, res) => {
+//     const output = {
+//       success: false,
+//       code: 0,
+//       error: "",
+//     };
   
-    if (!res.locals.jwtData) {
-      output.error = "沒有驗證";
-      return res.json(output);
-    } else {
-      output.jwtData = res.locals.jwtData; // 測試用
-    }
+//     if (!res.locals.jwtData) {
+//       output.error = "沒有驗證";
+//       return res.json(output);
+//     } else {
+//       output.jwtData = res.locals.jwtData; // 測試用
+//     }
   
-    const member_id = res.locals.jwtData.id;
-    // const image = req.file.filename;
-    const sql = `SELECT img FROM post WHERE sid=?`;
-    const [rows] = await db.query(sql, [member_id]);
-    res.json(rows[0]);
-  });
+//     const member_id = res.locals.jwtData.id;
+//     // const image = req.file.filename;
+//     const sql = `SELECT img FROM post WHERE sid=?`;
+//     const [rows] = await db.query(sql, [member_id]);
+//     res.json(rows[0]);
+//   });
 
 //新增圖片
 //後端上傳照片測試
 router.post("/:category/addphoto", upload.single("preImg"), async (req, res) => {
-    // const output = {
-    //   success: false,
-    //   code: 0,
-    //   error: "",
-    // };
-  
-    // if (!res.locals.jwtData) {
-    //   output.error = "沒有驗證";
-    //   return res.json(output);
-    // } else {
-    //   output.jwtData = res.locals.jwtData; // 測試用
-    // }
-  
-    // const member_id = res.locals.jwtData.id;
+    // const postCategory = req.params.category;
+    // // const post_category = req.params.category;
+    // const member_id = 'wayz';
     const image = req.file.filename;
-    const sql = "UPDATE post SET `img`=? WHERE `sid`=?";
-    const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
-    res.json(req.file);
+    // console.log(image);
+    // const info = [
+    //     {
+    //     text: '八卦版',
+    //     id: 'gossip',
+    // },
+    //     {
+    //     text: '愛情版',
+    //     id: 'love',
+        
+    // },
+    //     {
+    //     text: '鬼故事版',
+    //     id: 'ghost',
+    // },
+    //     {
+    //     text: '籤詩版',
+    //     id: 'fortunesticks',
+    // },
+    // ]   
+    // const postcategory_sid = info.findIndex((v)=>v.id===postCategory)
+    // const insertQuery = `
+    //     INSERT INTO post (member_id, title, content, publish_time, postcategory_sid, good, img)
+    //     VALUES (?, '', '', NOW(), ?, 0, ?);
+    // `;
+
+    try {
+        // const [data] = await db.query(insertQuery, [member_id, postcategory_sid + 1, image]);
+        // console.log(data);
+        res.json(image);
+        // // // console.log(image)
+        // res.json(image);
+    } catch (error) {
+        console.error("Error inserting data:", error);
+        res.status(500).json({ error: "An error occurred while inserting data." });
+    }
+});
+
+//讀取資料庫圖片檔名抓路徑（用不到）
+router.get("/:category/getaddphoto", upload.single("preImg"), async (req, res) => {
+  
+    const output = {
+        success: false,
+        code: 0,
+        error: "",
+      };
+    
+      // const image = req.file.filename;
+      const sql = `SELECT img FROM post WHERE sid=?`;
+      const [rows] = await db.query(sql, [sid]);
+      console.log(rows)
+      res.json(rows[0]);
+
   });
+
+
+//讀出新增文章頁會員頭貼
+router.get("/:category/read_addpost_profilePhoto", upload.single("preImg"), async (req, res) => {});
+
+//單筆貼文會員頭貼
+router.get("/:category/:post/profilePhoto", upload.single("preImg"), async (req, res) => {});
+
+// //文章排序和搜尋功能
+// router.post("/:category/:post", async (req, res) => {});
+
+//讀取文章留言
+router.get("/:category/:post_sid/comments", async (req, res) => {
+    const output = {
+      success: false,
+      error: "",
+      comments: [],
+    };
+    
+    const post_sid = parseInt(req.params.post_sid) || 0;
+  
+    if (!post_sid) {
+      output.error = "沒有 sid !";
+      return res.json(output);
+    }
+  
+    try {
+      // 在這裡根據 post_sid 查詢該帖子的評論資訊
+      const sql = `SELECT * FROM comment WHERE post_sid = ?`;
+      const [rows] = await db.query(sql, [post_sid]);
+  
+      rows.forEach((i) => {
+        i.comment_time = dayjs(i.comment_time).format("YYYY-MM-DD-HH:mm:ss");
+      });
+  
+      if (rows.length) {
+        output.success = true;
+        output.comments = rows;
+      } else {
+        output.error = "沒有評論!";
+      }
+  
+      res.json(output);
+    } catch (error) {
+      console.error("An error occurred:", error);
+      output.error = "發生錯誤!";
+      res.json(output);
+    }
+  });
+  
+
+//新增文章留言
+router.post("/:category/:post_sid/add-comment", async (req, res) => {
+    const member_id = '1'
+    const output = {
+      success: false,
+      error: "",
+      row: null,
+    };
+  
+    const post_sid = parseInt(req.params.post_sid) || 0;
+    const comment = req.body.comment;
+  
+    if (!post_sid) {
+      output.error = "沒有 sid !";
+      return res.json(output);
+    }
+  
+    try {
+      const sql = `INSERT INTO comment (post_sid, comment, comment_time, member_id) VALUES (?, ?, NOW(), ?)`;
+      const [result] = await db.query(sql, [post_sid, comment, member_id]);
+    
+      if (result.affectedRows === 1) {
+        output.success = true;
+        // 建立新增評論後的資訊物件
+        const newCommentInfo = {
+          post_sid: post_sid,
+          comment: comment,
+          comment_time: new Date().toISOString(), // 使用現在的時間
+          member_id: member_id, 
+        };
+        output.row = newCommentInfo;
+      } else {
+        output.error = "評論新增失敗!";
+      }
+    
+      res.json(output);
+    } catch (error) {
+      console.error("An error occurred:", error);
+      output.error = "發生錯誤!";
+      res.json(output);
+    }
+  });
+
+
+//抓單筆貼文
+router.get("/:category/:post_sid", async(req, res)=>{
+
+    const output = {
+        success: false,
+        error:"",
+        row:null
+    };
+    const post_sid = parseInt(req.params.post_sid) || 0;
+    // console.log(post_sid)
+    if(! post_sid){
+    //沒有sid
+    output.error = '沒有 sid !';
+        } else {
+        const sql = `SELECT * FROM post WHERE sid=?`;
+        const [rows] = await db.query(sql,[post_sid]);
+        rows.forEach(i => {
+            i.publish_time = dayjs(i.publish_time).format('YYYY-MM-DD-HH:mm:ss');
+        });
+        if(rows.length){
+        output.success = true;
+        output.row = rows[0];
+        } else {
+    //沒有資料
+            output.error = '沒有資料 !';
+        }
+        
+    }
+    res.json(output);
+
+});
+
+//編輯貼文
+
+//刪除貼文
+
 //
 // router.post('/:category', async (req, res) => {
 //     const postCategory = req.params.category;
