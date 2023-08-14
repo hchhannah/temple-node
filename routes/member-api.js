@@ -102,7 +102,7 @@ router.post("/login", async (req, res) => {
     error: "",
   };
   if (!req.body.member_account || !req.body.member_password) {
-    output.error = "欄位資料不足哈哈哈";
+    output.error = "請記得填寫所有欄位";
     return res.json(output);
   }
 
@@ -160,7 +160,10 @@ router.post("/signUp", multipartParser, async (req, res) => {
   const emailExists = emailResult[0].count > 0;
 
   if (emailExists) {
-    return res.status(409).json({ error: "該 email 已被使用。" });
+    return res.status(409).json({
+      part: "email",
+      error: `抱歉，${req.body.member_account}已被使用`,
+    });
   }
 
   //將密碼用bcrypt編碼
@@ -281,11 +284,17 @@ router.put("/personalinfo", async (req, res) => {
     const { emailCount, phoneCount } = result[0];
 
     if (emailCount > 0) {
-      return res.status(409).json({ error: "該 email 已被使用。" });
+      return res.status(409).json({
+        part: "email",
+        error: `抱歉，${req.body.member_account}已被使用`,
+      });
     }
 
     if (phoneCount > 0) {
-      return res.status(409).json({ error: "該手機號碼已被使用。" });
+      return res.status(409).json({
+        part: "phone",
+        error: `抱歉，${req.body.member_phone}已被使用`,
+      });
     }
 
     // 使用 "UPDATE ... SET ? WHERE ..." 語法並使用 dataObj 和 member_id
@@ -362,8 +371,11 @@ router.put("/personalinfo", async (req, res) => {
 });
 
 //  優惠券 所有的
-router.get("/allCoupons", async (req, res) => {
+router.post("/allCoupons", async (req, res) => {
+  // 0813改成POST
   // let { sid } = req.params;
+  const { sortOrder } = req.body;
+  //0813 body要加
 
   const output = {
     success: false,
@@ -392,7 +404,7 @@ router.get("/allCoupons", async (req, res) => {
   FROM coupons c 
   JOIN coupons_status cs ON c.coupon_id = cs.coupon_id 
   WHERE cs.member_id=?  
-  ORDER BY cs. start_date DESC`;
+  ORDER BY cs.created_at ${sortOrder || "DESC"}`; // Use sortOrder parameter in the ORDER BY clause 0813
 
   const [rows] = await db.query(sql, [member_id]);
 
@@ -429,7 +441,7 @@ router.get("/availableCoupons", async (req, res) => {
   const [updated] = await db.query(updateSql, [member_id]);
 
   const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
-  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '未使用' AND cs.member_id=?  ORDER BY cs. start_date DESC`;
+  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '未使用' AND cs.member_id=?  ORDER BY cs. created_at DESC`;
   const [rows] = await db.query(sql, [member_id]);
 
   if (!rows.length) {
@@ -465,7 +477,7 @@ router.get("/usedCoupons", async (req, res) => {
   const [updated] = await db.query(updateSql, [member_id]);
 
   const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
-  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '已使用' AND cs.member_id=?  ORDER BY cs. start_date DESC`;
+  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '已使用' AND cs.member_id=?  ORDER BY cs. created_at DESC`;
   const [rows] = await db.query(sql, [member_id]);
 
   if (!rows.length) {
@@ -500,7 +512,7 @@ router.get("/expiredCoupons", async (req, res) => {
   const [updated] = await db.query(updateSql, [member_id]);
 
   const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
-  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '已過期' AND cs.member_id=?  ORDER BY cs. start_date DESC`;
+  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '已過期' AND cs.member_id=?  ORDER BY cs. created_at DESC`;
   const [rows] = await db.query(sql, [member_id]);
 
   if (!rows.length) {
@@ -664,6 +676,114 @@ router.delete("/profilePhoto", async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "刪除個人檔案照片時出錯。" });
+  }
+});
+
+// 讀出准考證
+router.get("/studyTickets", upload.single("preImg"), async (req, res) => {
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+  // const image = req.file.filename;
+  const sql = `SELECT st.*, m.member_name
+  FROM study_tickets st
+  JOIN members m ON st.member_id = m.member_id 
+  WHERE st.member_id = ?; `;
+  const [rows] = await db.query(sql, [member_id]);
+  res.json(rows[0]);
+});
+
+//上傳准考證
+router.post("/studyTickets", upload.single("preImg"), async (req, res) => {
+  // const output = {
+  //   success: false,
+  //   code: 0,
+  //   error: "",
+  // };
+
+  // if (!res.locals.jwtData) {
+  //   output.error = "沒有驗證";
+  //   return res.json(output);
+  // } else {
+  //   output.jwtData = res.locals.jwtData; // 測試用
+  // }
+
+  const image = req.file.filename;
+  const member_id = res.locals.jwtData.id;
+  try {
+    // 先從資料庫中查詢舊准考證檔案名稱
+    const selectSql = `SELECT Ticket_Img FROM study_tickets WHERE member_id=?`;
+    const [selectRows] = await db.query(selectSql, [member_id]);
+    const oldFilename = selectRows[0].Ticket_Img;
+
+    // 刪除舊准考證檔案
+    if (oldFilename) {
+      const oldImagePath = path.join("public", "img", oldFilename);
+      fs.unlinkSync(oldImagePath);
+    }
+
+    // 更新資料庫中的准考證檔案名稱
+    const updateSql =
+      "UPDATE `study_tickets` SET `Ticket_Img`=? WHERE `member_id`=?";
+    await db.query(updateSql, [image, member_id]);
+
+    res.json({ success: true, message: "成功上傳准考證。" });
+  } catch (error) {
+    console.error("上傳准考證時出錯:", error);
+    res.status(500).json({ success: false, message: "上傳准考證時出錯。" });
+  }
+});
+
+// 准考證刪除
+router.delete("/studyTickets", async (req, res) => {
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+  const member_id = res.locals.jwtData.id;
+
+  try {
+    // 先從資料庫中查詢個人檔案准考證記錄
+    const selectSql = `SELECT Ticket_Img FROM study_tickets WHERE member_id=?`;
+    const [rows] = await db.query(selectSql, [member_id]);
+    const filename = rows[0].Ticket_Img;
+
+    // 刪除資料庫中的個人檔案准考證記錄
+    const updateSql = `UPDATE study_tickets SET Ticket_Img=null WHERE member_id=?`;
+    await db.query(updateSql, [member_id]);
+
+    // // 從儲存位置刪除實際的圖片檔案
+    if (filename) {
+      // const imagePath = path.join(__dirname, "..", "public", "img", filename);
+      const imagePath = path.join("public", "img", filename);
+      fs.unlinkSync(imagePath);
+    }
+
+    res.json({ success: true, message: "成功刪除個人檔案准考證。" });
+  } catch (error) {
+    console.error("刪除個人檔案准考證時出錯:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "刪除個人檔案准考證時出錯。" });
   }
 });
 
@@ -863,6 +983,111 @@ router.post("/dailySignIn", multipartParser, async (req, res) => {
   //   result,
   //   postData: req.body,
   // });
+});
+
+//卡牌遊戲 遊戲紀錄相關
+router.post("/cardGame", async (req, res) => {
+  const { points } = req.body;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  // // 檢查今天是否已經遊玩超過次數
+  // const checkPlayingStatusQuery =
+  //   "SELECT COUNT(*) AS count FROM `daily_signins` WHERE `member_id` = ? AND DATE(`signin_date`) = CURDATE()";
+  // const [checkResult] = await db.query(checkPlayingStatusQuery, [member_id]);
+  // const alreadyPlayed3 = checkResult[0].count > 0;
+
+  // if (alreadyPlayed3) {
+  //   return res.status(409).json({ error: "今天超過遊玩次數囉" });
+  // }
+
+  const sql = `INSERT INTO card_game_status (member_id, points) VALUES (?, ?);`;
+  const [rows] = await db.query(sql, [member_id, points]);
+
+  if (!rows.length) {
+    // If the result is empty, send the "尚未簽到記錄" message
+    const output = {
+      success: true,
+      data: "尚未遊玩記錄",
+    };
+    return res.json(output);
+  }
+
+  res.json(rows);
+  console.log(rows);
+});
+
+//卡牌遊戲 優惠券相關
+router.post("/cardGameCoupon", async (req, res) => {
+  const { points } = req.body;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+  //日期格式
+  const today = new Date();
+  const startDate = today.toISOString().slice(0, 10);
+
+  // Calculate expiration date (30 days from today)
+  const expirationDate = new Date(today);
+  expirationDate.setDate(expirationDate.getDate() + 30);
+  const formattedExpirationDate = expirationDate.toISOString().slice(0, 10);
+
+  // 檢查今天是否已經領過
+  const checkCouponStatusQuery = `SELECT COUNT(*) AS count 
+  FROM coupons_status
+  WHERE member_id = ?
+  AND coupon_id = 14 
+  AND DATE(created_at) = CURDATE();`;
+  const [checkResult] = await db.query(checkCouponStatusQuery, [member_id]);
+  const alreadyReceived = checkResult[0].count > 0;
+
+  if (alreadyReceived) {
+    return res.status(409).json({ error: "今天已經領過囉" });
+  }
+
+  const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (14, ?, '未使用', ?, ?);`;
+  const [rows] = await db.query(couponSql, [
+    member_id,
+    startDate,
+    formattedExpirationDate,
+  ]);
+
+  if (!rows.length) {
+    // If the result is empty, send the "領取失敗" message
+    const output = {
+      success: true,
+      data: "領取失敗",
+    };
+    return res.json(output);
+  }
+
+  res.json(rows);
+  console.log(rows);
 });
 
 module.exports = router;
