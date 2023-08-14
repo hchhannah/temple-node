@@ -352,7 +352,6 @@ router.post('/:category',async (req,res)=>{
     const {page, perPage, sort, orderBy, keyword} = req.body.requestData;
     let totalPages = 0
     let where = 'WHERE 1'
-    // console.log(keyword);
     
     // 依照類別去改變WHERE條件
     if(category!=='all'){
