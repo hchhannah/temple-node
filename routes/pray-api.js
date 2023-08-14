@@ -7,7 +7,7 @@ const multipartParser = upload.none();
 
 router.post('/mazu1', async (req,res)=>{
     console.log(req.body.requestData );
-    const Member_ID = 'aaa'
+    const Member_ID = '1'
  const {Name, Birthday, Address} = req.body.requestData   
 const sql = "INSERT INTO `Personal`" +
 "(`Member_ID`,`Name`, `Birthday`, `Address`)" +
@@ -26,7 +26,7 @@ const [result] = await db.query(sql,[
 });
 router.post('/loveA-1', async (req,res)=>{
     console.log(req.body.requestData );
-    const Member_ID = 'aaa'
+    const Member_ID = '1'
  const {Name, Birthday, Address,Datetime} = req.body.requestData   
 const sql = "INSERT INTO `Love_redline`" +
 "(`Member_ID`,`Name`, `Birthday`, `Address`,`Datetime`)" +
@@ -48,7 +48,7 @@ const [result] = await db.query(sql,[
 //紅線基本基料
 router.post('/loveB-2', async (req,res)=>{
     console.log(req.body.requestData );
-    const Member_ID = '12'
+    const Member_ID = '1'
 //  const {Tower_ID, All_Light, LocationX,LocationY,Datetime} = req.body.requestData   
 const sql = "INSERT INTO `Love_Light`" +
 "(`Member_ID`,`Tower_ID`, `LocationX`,`LocationY`,`Datetime`)" +
@@ -69,7 +69,7 @@ const [result] = await db.query(sql,[
 //護身符紅線
 router.post('/loveA-3', async (req,res)=>{
     console.log(req.body.requestData );
-    const Member_ID = '12'
+    const Member_ID = '1'
     const Name = '紅線'
 //   const {Member_ID, Name, Sid, Datetime} = req.body.requestData   
 const sql = "INSERT INTO `Amulet`" +
@@ -91,7 +91,7 @@ const [result] = await db.query(sql,[
 //護身桃花枝
 router.post('/loveB-3', async (req,res)=>{
     console.log(req.body.requestData );
-    const Member_ID = '12'
+    const Member_ID = '1'
     const Name = '桃花枝'
 //   const {Member_ID, Name, Sid, Datetime} = req.body.requestData   
 const sql = "INSERT INTO `Amulet`" +
@@ -136,7 +136,7 @@ const [result] = await db.query(sql,[
 //護身籤詩
 router.post('/mazu4', async (req,res)=>{
     console.log(req.body.requestData );
-    const Member_ID = '12'
+    const Member_ID = '1'
 //   const {Member_ID, Name, Sid, Datetime} = req.body.requestData   
 const sql = "INSERT INTO `Amulet`" +
 "(`Member_ID`, `Name`, `Sid`, `Datetime`)" +
