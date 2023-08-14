@@ -94,7 +94,7 @@ router.use((req, res, next) => {
 //   //   res.render("members/index", output);
 // });
 
-//會員登入 - 0711  密碼比對
+// 會員登入 - 0711  密碼比對
 router.post("/login", async (req, res) => {
   const output = {
     success: false,
@@ -102,7 +102,7 @@ router.post("/login", async (req, res) => {
     error: "",
   };
   if (!req.body.member_account || !req.body.member_password) {
-    output.error = "欄位資料不足哈哈哈";
+    output.error = "請記得填寫所有欄位";
     return res.json(output);
   }
 
@@ -160,7 +160,10 @@ router.post("/signUp", multipartParser, async (req, res) => {
   const emailExists = emailResult[0].count > 0;
 
   if (emailExists) {
-    return res.status(409).json({ error: "該 email 已被使用。" });
+    return res.status(409).json({
+      part: "email",
+      error: `抱歉，${req.body.member_account}已被使用`,
+    });
   }
 
   //將密碼用bcrypt編碼
@@ -227,7 +230,19 @@ router.get("/personalinfo", async (req, res) => {
 
   const member_id = res.locals.jwtData.id;
 
-  const sql = "SELECT * FROM members WHERE member_id=?";
+  const sql = `SELECT 
+  member_id, 
+  member_account, 
+  member_name, 
+  member_address, 
+  member_phone, 
+  member_birthday, 
+  member_forum_name, 
+  member_profile 
+FROM 
+  members 
+WHERE 
+  member_id = ?;`;
 
   const [rows] = await db.query(sql, [member_id]);
 
@@ -239,7 +254,6 @@ router.get("/personalinfo", async (req, res) => {
 });
 
 //會員資料 (修改更新欄位)
-
 router.put("/personalinfo", async (req, res) => {
   const output = {
     success: false,
@@ -270,19 +284,73 @@ router.put("/personalinfo", async (req, res) => {
     const { emailCount, phoneCount } = result[0];
 
     if (emailCount > 0) {
-      return res.status(409).json({ error: "該 email 已被使用。" });
+      return res.status(409).json({
+        part: "email",
+        error: `抱歉，${req.body.member_account}已被使用`,
+      });
     }
 
     if (phoneCount > 0) {
-      return res.status(409).json({ error: "該手機號碼已被使用。" });
+      return res.status(409).json({
+        part: "phone",
+        error: `抱歉，${req.body.member_phone}已被使用`,
+      });
     }
 
     // 使用 "UPDATE ... SET ? WHERE ..." 語法並使用 dataObj 和 member_id
     const sql = "UPDATE members SET ? WHERE member_id = ?";
+    delete dataObj.member_id;
+    delete dataObj.member_profile;
+    console.log(JSON.stringify(dataObj, null, 2));
+
     const [updateResult] = await db.query(sql, [dataObj, member_id]);
 
+    const sql_r = "SELECT * FROM `members` WHERE member_id=? ";
+    const [rows] = await db.query(sql_r, [member_id]);
+
+    let isChanged = false;
+    if (rows && rows.length) {
+      for (let i in dataObj) {
+        if (dataObj[i] != rows[0][i]) {
+          console.log(dataObj[i]);
+          console.log(rows[0][i]);
+          console.log("--------------");
+          isChanged = true;
+        }
+      }
+    }
+    console.log({ isChanged });
+    /*
+    const {
+      member_account,
+      member_name,
+      member_address,
+      member_phone,
+      member_birthday,
+      member_forum_name,
+      member_profile,
+    } = dataObj;
+
+    const sql =
+      "UPDATE `members` SET `member_account`=?,`member_name`=?,`member_address`=?,`member_phone`=?,`member_birthday`=?,`member_forum_name`=?,`member_profile`=?,=? WHERE member_id = ?";
+
+    console.log(JSON.stringify(dataObj, null, 2));
+
+    const [updateResult] = await db.query(sql, [
+      member_account,
+      member_name,
+      member_address,
+      member_phone,
+      member_birthday,
+      member_forum_name,
+      member_profile,
+      member_invoice,
+      member_id,
+    ]);
+*/
     console.log("updateResult.affectedRows:", updateResult.affectedRows);
     console.log("updateResult.changedRows:", updateResult.changedRows);
+    console.log("updateResult.message:", updateResult);
 
     if (updateResult.affectedRows === 1) {
       if (updateResult.changedRows === 0) {
@@ -302,7 +370,53 @@ router.put("/personalinfo", async (req, res) => {
   }
 });
 
-router.get("/coupons", async (req, res) => {
+//  優惠券 所有的
+router.post("/allCoupons", async (req, res) => {
+  // 0813改成POST
+  // let { sid } = req.params;
+  const { sortOrder } = req.body;
+  //0813 body要加
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  // 自動判斷expired 並檢查是否"已使用"
+  const updateSql = `UPDATE coupons_status
+  SET usage_status = '已過期'
+  WHERE expiration_date <= CURDATE() AND usage_status != '已使用' AND member_id = ?`;
+  const [updated] = await db.query(updateSql, [member_id]);
+
+  const sql = `
+  SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
+    AS expiration_date 
+  FROM coupons c 
+  JOIN coupons_status cs ON c.coupon_id = cs.coupon_id 
+  WHERE cs.member_id=?  
+  ORDER BY cs.created_at ${sortOrder || "DESC"}`; // Use sortOrder parameter in the ORDER BY clause 0813
+
+  const [rows] = await db.query(sql, [member_id]);
+
+  if (!rows.length) {
+    return res.redirect(req.baseUrl);
+  }
+
+  res.json(rows);
+});
+
+//  優惠券 可使用
+router.get("/availableCoupons", async (req, res) => {
   // let { sid } = req.params;
 
   const output = {
@@ -320,9 +434,115 @@ router.get("/coupons", async (req, res) => {
 
   const member_id = res.locals.jwtData.id;
 
+  // 自動判斷expired 並檢查是否"已使用"
+  const updateSql = `UPDATE coupons_status
+  SET usage_status = '已過期'
+  WHERE expiration_date <= CURDATE() AND usage_status != '已使用' AND member_id = ?`;
+  const [updated] = await db.query(updateSql, [member_id]);
+
   const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
-    AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.member_id=?  ORDER BY cs.expiration_date ASC`;
+  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '未使用' AND cs.member_id=?  ORDER BY cs. created_at DESC`;
   const [rows] = await db.query(sql, [member_id]);
+
+  if (!rows.length) {
+    return res.redirect(req.baseUrl);
+  }
+
+  res.json(rows);
+});
+
+//  優惠券 已使用
+router.get("/usedCoupons", async (req, res) => {
+  // let { sid } = req.params;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  // 自動判斷expired 並檢查是否"已使用"
+  const updateSql = `UPDATE coupons_status
+  SET usage_status = '已過期'
+  WHERE expiration_date <= CURDATE() AND usage_status != '已使用' AND member_id = ?`;
+  const [updated] = await db.query(updateSql, [member_id]);
+
+  const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
+  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '已使用' AND cs.member_id=?  ORDER BY cs. created_at DESC`;
+  const [rows] = await db.query(sql, [member_id]);
+
+  if (!rows.length) {
+    return res.redirect(req.baseUrl);
+  }
+
+  res.json(rows);
+});
+//  優惠券 已過期
+router.get("/expiredCoupons", async (req, res) => {
+  // let { sid } = req.params;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  // 自動判斷expired 並檢查是否"已使用"
+  const updateSql = `UPDATE coupons_status
+  SET usage_status = '已過期'
+  WHERE expiration_date <= CURDATE() AND usage_status != '已使用' AND member_id = ?`;
+  const [updated] = await db.query(updateSql, [member_id]);
+
+  const sql = `SELECT c.coupon_name, c.coupon_value, cs.coupon_status_id, cs.usage_status, DATE_FORMAT(cs.expiration_date, '%Y/%m/%d') 
+  AS expiration_date FROM coupons c JOIN coupons_status cs ON c.coupon_id = cs.coupon_id WHERE cs.usage_status = '已過期' AND cs.member_id=?  ORDER BY cs. created_at DESC`;
+  const [rows] = await db.query(sql, [member_id]);
+
+  if (!rows.length) {
+    return res.redirect(req.baseUrl);
+  }
+
+  res.json(rows);
+});
+
+// 護身符
+router.get("/amulet", async (req, res) => {
+  // let { sid } = req.params;
+
+  // const output = {
+  //   success: false,
+  //   code: 0,
+  //   error: "",
+  // };
+
+  // if (!res.locals.jwtData) {
+  //   output.error = "沒有驗證";
+  //   return res.json(output);
+  // } else {
+  //   output.jwtData = res.locals.jwtData; // 測試用
+  // }
+
+  // const member_id = res.locals.jwtData.id;
+
+  const sql = `SELECT Name FROM amulet WHERE Member_ID=? `;
+  const [rows] = await db.query(sql, [res.locals.jwtData.id]);
 
   if (!rows.length) {
     return res.redirect(req.baseUrl);
@@ -353,8 +573,29 @@ router.get("/profilePhoto", upload.single("preImg"), async (req, res) => {
   res.json(rows[0]);
 });
 
-//上傳照片測試
+// //上傳照片測試 1.0
+// router.post("/profilePhoto", upload.single("preImg"), async (req, res) => {
+//   // const output = {
+//   //   success: false,
+//   //   code: 0,
+//   //   error: "",
+//   // };
 
+//   // if (!res.locals.jwtData) {
+//   //   output.error = "沒有驗證";
+//   //   return res.json(output);
+//   // } else {
+//   //   output.jwtData = res.locals.jwtData; // 測試用
+//   // }
+
+//   // const member_id = res.locals.jwtData.id;
+//   const image = req.file.filename;
+//   const sql = "UPDATE `members` SET `member_profile`=? WHERE `member_id`=?";
+//   const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
+//   res.json(req.file);
+// });
+
+//上傳照片測試
 router.post("/profilePhoto", upload.single("preImg"), async (req, res) => {
   // const output = {
   //   success: false,
@@ -369,11 +610,30 @@ router.post("/profilePhoto", upload.single("preImg"), async (req, res) => {
   //   output.jwtData = res.locals.jwtData; // 測試用
   // }
 
-  // const member_id = res.locals.jwtData.id;
   const image = req.file.filename;
-  const sql = "UPDATE `members` SET `member_profile`=? WHERE `member_id`=?";
-  const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
-  res.json(req.file);
+  const member_id = res.locals.jwtData.id;
+  try {
+    // 先從資料庫中查詢舊照片檔案名稱
+    const selectSql = `SELECT member_profile FROM members WHERE member_id=?`;
+    const [selectRows] = await db.query(selectSql, [member_id]);
+    const oldFilename = selectRows[0].member_profile;
+
+    // 刪除舊照片檔案
+    if (oldFilename) {
+      const oldImagePath = path.join("public", "img", oldFilename);
+      fs.unlinkSync(oldImagePath);
+    }
+
+    // 更新資料庫中的照片檔案名稱
+    const updateSql =
+      "UPDATE `members` SET `member_profile`=? WHERE `member_id`=?";
+    await db.query(updateSql, [image, member_id]);
+
+    res.json({ success: true, message: "成功上傳新照片。" });
+  } catch (error) {
+    console.error("上傳照片時出錯:", error);
+    res.status(500).json({ success: false, message: "上傳照片時出錯。" });
+  }
 });
 
 // 照片刪除
@@ -419,6 +679,150 @@ router.delete("/profilePhoto", async (req, res) => {
   }
 });
 
+// 讀出准考證
+router.get("/studyTickets", upload.single("preImg"), async (req, res) => {
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+  // const image = req.file.filename;
+  const sql = `SELECT st.*, m.member_name
+  FROM study_tickets st
+  JOIN members m ON st.member_id = m.member_id 
+  WHERE st.member_id = ?; `;
+  const [rows] = await db.query(sql, [member_id]);
+  res.json(rows[0]);
+});
+
+//上傳准考證
+router.post("/studyTickets", upload.single("preImg"), async (req, res) => {
+  // const output = {
+  //   success: false,
+  //   code: 0,
+  //   error: "",
+  // };
+
+  // if (!res.locals.jwtData) {
+  //   output.error = "沒有驗證";
+  //   return res.json(output);
+  // } else {
+  //   output.jwtData = res.locals.jwtData; // 測試用
+  // }
+
+  const image = req.file.filename;
+  const member_id = res.locals.jwtData.id;
+  try {
+    // 先從資料庫中查詢舊准考證檔案名稱
+    const selectSql = `SELECT Ticket_Img FROM study_tickets WHERE member_id=?`;
+    const [selectRows] = await db.query(selectSql, [member_id]);
+    const oldFilename = selectRows[0].Ticket_Img;
+
+    // 刪除舊准考證檔案
+    if (oldFilename) {
+      const oldImagePath = path.join("public", "img", oldFilename);
+      fs.unlinkSync(oldImagePath);
+    }
+
+    // 更新資料庫中的准考證檔案名稱
+    const updateSql =
+      "UPDATE `study_tickets` SET `Ticket_Img`=? WHERE `member_id`=?";
+    await db.query(updateSql, [image, member_id]);
+
+    res.json({ success: true, message: "成功上傳准考證。" });
+  } catch (error) {
+    console.error("上傳准考證時出錯:", error);
+    res.status(500).json({ success: false, message: "上傳准考證時出錯。" });
+  }
+});
+
+// 准考證刪除
+router.delete("/studyTickets", async (req, res) => {
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+  const member_id = res.locals.jwtData.id;
+
+  try {
+    // 先從資料庫中查詢個人檔案准考證記錄
+    const selectSql = `SELECT Ticket_Img FROM study_tickets WHERE member_id=?`;
+    const [rows] = await db.query(selectSql, [member_id]);
+    const filename = rows[0].Ticket_Img;
+
+    // 刪除資料庫中的個人檔案准考證記錄
+    const updateSql = `UPDATE study_tickets SET Ticket_Img=null WHERE member_id=?`;
+    await db.query(updateSql, [member_id]);
+
+    // // 從儲存位置刪除實際的圖片檔案
+    if (filename) {
+      // const imagePath = path.join(__dirname, "..", "public", "img", filename);
+      const imagePath = path.join("public", "img", filename);
+      fs.unlinkSync(imagePath);
+    }
+
+    res.json({ success: true, message: "成功刪除個人檔案准考證。" });
+  } catch (error) {
+    console.error("刪除個人檔案准考證時出錯:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "刪除個人檔案准考證時出錯。" });
+  }
+});
+
+//喜好商品
+
+router.get("/wishList", async (req, res) => {
+  // let { sid } = req.params;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  const sql = `
+  SELECT p.pid, p.cid, p.image, p.product_name, p.product_price, lp.lid
+  FROM products p
+  JOIN like_products lp ON p.pid = lp.pid 
+  WHERE lp.member_id = ?
+  ORDER BY lp.created_at DESC
+`;
+
+  const [rows] = await db.query(sql, [member_id]);
+  if (!rows.length) {
+    return res.redirect(req.baseUrl);
+  }
+  // console.log(rows);
+  res.json(rows);
+});
+
 //每日簽到 讀
 router.get("/dailySignIn", async (req, res) => {
   // let { sid } = req.params;
@@ -439,7 +843,7 @@ router.get("/dailySignIn", async (req, res) => {
   const member_id = res.locals.jwtData.id;
 
   const sql =
-    "SELECT * FROM `daily_signins` WHERE member_id=? ORDER BY `daily_signins`.`signin_date` DESC";
+    "SELECT * FROM `daily_signins` WHERE member_id=? ORDER BY `daily_signins`.`signin_date` DESC LIMIT 10";
 
   const [rows] = await db.query(sql, [member_id]);
 
@@ -456,18 +860,7 @@ router.get("/dailySignIn", async (req, res) => {
 });
 //每日簽到 送
 router.post("/dailySignIn", multipartParser, async (req, res) => {
-  // 0804 檢查 是否已簽到
-  // const checkEmailQuery =
-  //   "SELECT COUNT(*) AS count FROM `members` WHERE `member_account` = ?";
-  // const [emailResult] = await db.query(checkEmailQuery, [
-  //   req.body.member_account,
-  // ]);
-  // const emailExists = emailResult[0].count > 0;
-
-  // if (emailExists) {
-  //   return res.status(409).json({ error: "該 email 已被使用。" });
-  // }
-
+  const { coupon_value } = req.body;
   const output = {
     success: false,
     code: 0,
@@ -503,28 +896,76 @@ router.post("/dailySignIn", multipartParser, async (req, res) => {
     const formattedExpirationDate = expirationDate.toISOString().slice(0, 10);
 
     // Insert into daily_signins and coupons_status in a single query
-    const insertQuery = `
-      INSERT INTO daily_signins (member_id, signin_date)
-      VALUES (?, NOW());
+    const signInSql = `INSERT INTO daily_signins (member_id, signin_date) VALUES (?, NOW());`;
+    const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (?, ?, '未使用', ?, ?);`;
+    // const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (12, ?, '未使用', ?, ?);`;
+    // const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (13, ?, '未使用', ?, ?);`;
 
-      INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date)
-      VALUES (1, ?, '未使用', ?, ?);
-    `;
+    //檢查coupon value
 
-    const [result] = await db.query(insertQuery, [
+    switch (coupon_value) {
+      case "10":
+        // couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (1, ?, '未使用', ?, ?);`;
+        coupon_id = "1";
+        break;
+      case "20":
+        // couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (2, ?, '未使用', ?, ?);`;
+        coupon_id = "2";
+        break;
+      case "30":
+        coupon_id = "3";
+        break;
+      case "40":
+        coupon_id = "4";
+        break;
+      case "50":
+        coupon_id = "5";
+        break;
+      case "60":
+        coupon_id = "6";
+        break;
+      case "70":
+        coupon_id = "7";
+        break;
+      case "80":
+        coupon_id = "8";
+        break;
+      case "90":
+        coupon_id = "9";
+        break;
+      case "100":
+        coupon_id = "10";
+        break;
+      case "1000":
+        coupon_id = "11";
+        break;
+      // ... 其他 coupon_value 對應的寫入資料庫操作
+      default:
+        return res.status(400).json({ error: "無效的 coupon_value" });
+    }
+
+    const [signInResult] = await db.query(signInSql, [
       member_id, // Placeholder for member_id in daily_signins table
+    ]);
+    const [couponResult] = await db.query(couponSql, [
+      coupon_id,
       member_id, // Placeholder for member_id in coupons_status table
       startDate,
       formattedExpirationDate,
     ]);
 
     // Send the response
+    console.log(`signInResult:`, signInResult);
+    console.log(`couponResult:`, couponResult);
+    console.log(`node檢查coupon value:`, coupon_value);
+
     res.json({
       success: true,
       message: "簽到成功，並獲得優惠券。",
     });
   } catch (error) {
     // Handle the error
+    console.error("Error executing the query:", error);
     res.status(500).json({
       success: false,
       message: "簽到失敗，請稍後再試。",
@@ -542,6 +983,111 @@ router.post("/dailySignIn", multipartParser, async (req, res) => {
   //   result,
   //   postData: req.body,
   // });
+});
+
+//卡牌遊戲 遊戲紀錄相關
+router.post("/cardGame", async (req, res) => {
+  const { points } = req.body;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  // // 檢查今天是否已經遊玩超過次數
+  // const checkPlayingStatusQuery =
+  //   "SELECT COUNT(*) AS count FROM `daily_signins` WHERE `member_id` = ? AND DATE(`signin_date`) = CURDATE()";
+  // const [checkResult] = await db.query(checkPlayingStatusQuery, [member_id]);
+  // const alreadyPlayed3 = checkResult[0].count > 0;
+
+  // if (alreadyPlayed3) {
+  //   return res.status(409).json({ error: "今天超過遊玩次數囉" });
+  // }
+
+  const sql = `INSERT INTO card_game_status (member_id, points) VALUES (?, ?);`;
+  const [rows] = await db.query(sql, [member_id, points]);
+
+  if (!rows.length) {
+    // If the result is empty, send the "尚未簽到記錄" message
+    const output = {
+      success: true,
+      data: "尚未遊玩記錄",
+    };
+    return res.json(output);
+  }
+
+  res.json(rows);
+  console.log(rows);
+});
+
+//卡牌遊戲 優惠券相關
+router.post("/cardGameCoupon", async (req, res) => {
+  const { points } = req.body;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+  //日期格式
+  const today = new Date();
+  const startDate = today.toISOString().slice(0, 10);
+
+  // Calculate expiration date (30 days from today)
+  const expirationDate = new Date(today);
+  expirationDate.setDate(expirationDate.getDate() + 30);
+  const formattedExpirationDate = expirationDate.toISOString().slice(0, 10);
+
+  // 檢查今天是否已經領過
+  const checkCouponStatusQuery = `SELECT COUNT(*) AS count 
+  FROM coupons_status
+  WHERE member_id = ?
+  AND coupon_id = 14 
+  AND DATE(created_at) = CURDATE();`;
+  const [checkResult] = await db.query(checkCouponStatusQuery, [member_id]);
+  const alreadyReceived = checkResult[0].count > 0;
+
+  if (alreadyReceived) {
+    return res.status(409).json({ error: "今天已經領過囉" });
+  }
+
+  const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (14, ?, '未使用', ?, ?);`;
+  const [rows] = await db.query(couponSql, [
+    member_id,
+    startDate,
+    formattedExpirationDate,
+  ]);
+
+  if (!rows.length) {
+    // If the result is empty, send the "領取失敗" message
+    const output = {
+      success: true,
+      data: "領取失敗",
+    };
+    return res.json(output);
+  }
+
+  res.json(rows);
+  console.log(rows);
 });
 
 module.exports = router;

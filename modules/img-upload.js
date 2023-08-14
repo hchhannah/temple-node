@@ -6,6 +6,7 @@ const extMap = {
   "image/jpeg": ".jpg",
   "image/gif": ".gif",
   "image/webp": ".webp",
+  "image/avif": ".avif",
 };
 
 const storage = multer.diskStorage({
