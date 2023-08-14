@@ -162,7 +162,7 @@ router.post('/studyA-2', upload.single("preImg"),async (req,res)=>{
     const Member_ID = '1'
     const { Name, School, image_uploads, Datetime} = req.body.requestData   
     // const image = req.file.filename;
-    const sql = "INSERT INTO `Study_Ticket`" +
+    const sql = "INSERT INTO `Study_Ticket2`" +
     "(`Member_ID`,  `Name`, `School`, `Ticket_Img`, `Datetime`)" +
     " VALUES ( ?, ?, ?, ?, NOW())";
     // const [rows] = await db.query(sql, [image, res.locals.jwtData.id]);
