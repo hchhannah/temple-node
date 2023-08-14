@@ -1014,7 +1014,7 @@ router.post("/cardGame", async (req, res) => {
   //   return res.status(409).json({ error: "今天超過遊玩次數囉" });
   // }
 
-  const sql = `INSERT INTO card_game_status (member_id, card_game_date, points) VALUES (?, NOW(), ?);`;
+  const sql = `INSERT INTO card_game_status (member_id, points) VALUES (?, ?);`;
   const [rows] = await db.query(sql, [member_id, points]);
 
   if (!rows.length) {
@@ -1057,15 +1057,18 @@ router.post("/cardGameCoupon", async (req, res) => {
   expirationDate.setDate(expirationDate.getDate() + 30);
   const formattedExpirationDate = expirationDate.toISOString().slice(0, 10);
 
-  // // 檢查今天是否已經領過
-  // const checkPlayingStatusQuery =
-  //   "SELECT COUNT(*) AS count FROM `daily_signins` WHERE `member_id` = ? AND DATE(`signin_date`) = CURDATE()";
-  // const [checkResult] = await db.query(checkPlayingStatusQuery, [member_id]);
-  // const alreadyPlayed3 = checkResult[0].count > 0;
+  // 檢查今天是否已經領過
+  const checkCouponStatusQuery = `SELECT COUNT(*) AS count 
+  FROM coupons_status
+  WHERE member_id = ?
+  AND coupon_id = 14 
+  AND DATE(created_at) = CURDATE();`;
+  const [checkResult] = await db.query(checkCouponStatusQuery, [member_id]);
+  const alreadyReceived = checkResult[0].count > 0;
 
-  // if (alreadyPlayed3) {
-  //   return res.status(409).json({ error: "今天超過遊玩次數囉" });
-  // }
+  if (alreadyReceived) {
+    return res.status(409).json({ error: "今天已經領過囉" });
+  }
 
   const couponSql = `INSERT INTO coupons_status (coupon_id, member_id, usage_status, start_date, expiration_date) VALUES (14, ?, '未使用', ?, ?);`;
   const [rows] = await db.query(couponSql, [
@@ -1075,10 +1078,10 @@ router.post("/cardGameCoupon", async (req, res) => {
   ]);
 
   if (!rows.length) {
-    // If the result is empty, send the "尚未遊玩記錄" message
+    // If the result is empty, send the "領取失敗" message
     const output = {
       success: true,
-      data: "尚未遊玩記錄",
+      data: "領取失敗",
     };
     return res.json(output);
   }
