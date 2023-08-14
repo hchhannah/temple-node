@@ -875,15 +875,15 @@ router.post("/dailySignIn", multipartParser, async (req, res) => {
   }
   const member_id = res.locals.jwtData.id;
 
-  // // 檢查今天是否已經簽到
-  // const checkSignInQuery =
-  //   "SELECT COUNT(*) AS count FROM `daily_signins` WHERE `member_id` = ? AND DATE(`signin_date`) = CURDATE()";
-  // const [checkResult] = await db.query(checkSignInQuery, [member_id]);
-  // const alreadySignedIn = checkResult[0].count > 0;
+  // 檢查今天是否已經簽到
+  const checkSignInQuery =
+    "SELECT COUNT(*) AS count FROM `daily_signins` WHERE `member_id` = ? AND DATE(`signin_date`) = CURDATE()";
+  const [checkResult] = await db.query(checkSignInQuery, [member_id]);
+  const alreadySignedIn = checkResult[0].count > 0;
 
-  // if (alreadySignedIn) {
-  //   return res.status(409).json({ error: "今天已經簽到過囉!" });
-  // }
+  if (alreadySignedIn) {
+    return res.status(409).json({ error: "今天已經簽到過囉!" });
+  }
 
   try {
     // Get today's date
