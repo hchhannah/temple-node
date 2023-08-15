@@ -191,9 +191,10 @@ if (keyword) {
   )`;
 }
 
-const sql = `SELECT p.*, c.type_name FROM post p JOIN postcategory c ON p.postcategory_sid = c.sid ${where} LIMIT ${
+const sql = `SELECT p.*, c.type_name FROM post p JOIN postcategory c ON p.postcategory_sid = c.sid ${where} ORDER BY p.publish_time DESC LIMIT ${
     perPage * (page - 1)
   }, ${perPage}`;
+//ORDER BY p.publish_time DESC:時間排序（SQL做）
 
 const offset = (page - 1) * perPage;
 const [data] = await db.query(sql,[sid+1,offset,perPage]);
@@ -219,109 +220,55 @@ console.log(totalRows);
 });
 
 //新增貼文
-router.post('/:category/add', async (req, res) => {
-    const postCategory = req.params.category;
-    const {title, content,img} = req.body.requestData
-    const member_id = res.locals.jwtData.id
-    // const member_id = req.body.member_id
-    const info = [
-        {
-        text: '八卦版',
-        id: 'gossip',
-    },
-        {
-        text: '愛情版',
-        id: 'love',
-        
-    },
-        {
-        text: '鬼故事版',
-        id: 'ghost',
-    },
-        {
-        text: '籤詩版',
-        id: 'fortunesticks',
-    },
-    ]   
-    const postcategory_sid = info.findIndex((v)=>v.id===postCategory)
-    
-    const sql = `INSERT INTO post (member_id, title, content, publish_time, postcategory_sid, good, img)
-    VALUES (?, ?, ?, NOW(), ?, 0, ?);`
+router.post('/:category/add',upload.single("preImg"), async (req, res) => {
+  const postCategory = req.params.category;
+  const {title, content,img} = req.body.requestData
+  const member_id = res.locals.jwtData.id
+  // const member_id = req.body.member_id
+  const info = [
+      {
+      text: '八卦版',
+      id: 'gossip',
+  },
+      {
+      text: '愛情版',
+      id: 'love',
+      
+  },
+      {
+      text: '鬼故事版',
+      id: 'ghost',
+  },
+      {
+      text: '籤詩版',
+      id: 'fortunesticks',
+  },
+  ]   
+  const postcategory_sid = info.findIndex((v)=>v.id===postCategory)
+  
+  const sql = `INSERT INTO post (member_id, title, content, publish_time, postcategory_sid, good, img)
+  VALUES (?, ?, ?, NOW(), ?, 0, ?);`
 
-    const [data] = await db.query(sql, [member_id, title, content, postcategory_sid+1, img])
+  const [data] = await db.query(sql, [member_id, title, content, postcategory_sid+1, img])
 
-    res.json(data)
+  res.json(data)
 });
-
-// router.post('/:category/userid', async (req, res) => {
-// res.json(req.body)
-// });
-
-//讀取圖片
-// router.get("/profilePhoto", upload.single("preImg"), async (req, res) => {
-//     const output = {
-//       success: false,
-//       code: 0,
-//       error: "",
-//     };
-  
-//     if (!res.locals.jwtData) {
-//       output.error = "沒有驗證";
-//       return res.json(output);
-//     } else {
-//       output.jwtData = res.locals.jwtData; // 測試用
-//     }
-  
-//     const member_id = res.locals.jwtData.id;
-//     // const image = req.file.filename;
-//     const sql = `SELECT img FROM post WHERE sid=?`;
-//     const [rows] = await db.query(sql, [member_id]);
-//     res.json(rows[0]);
-//   });
 
 //新增圖片
 //後端上傳照片測試
 router.post("/:category/addphoto", upload.single("preImg"), async (req, res) => {
-    // const postCategory = req.params.category;
-    // // const post_category = req.params.category;
-    // const member_id = 'wayz';
-    const image = req.file.filename;
-    // console.log(image);
-    // const info = [
-    //     {
-    //     text: '八卦版',
-    //     id: 'gossip',
-    // },
-    //     {
-    //     text: '愛情版',
-    //     id: 'love',
-        
-    // },
-    //     {
-    //     text: '鬼故事版',
-    //     id: 'ghost',
-    // },
-    //     {
-    //     text: '籤詩版',
-    //     id: 'fortunesticks',
-    // },
-    // ]   
-    // const postcategory_sid = info.findIndex((v)=>v.id===postCategory)
-    // const insertQuery = `
-    //     INSERT INTO post (member_id, title, content, publish_time, postcategory_sid, good, img)
-    //     VALUES (?, '', '', NOW(), ?, 0, ?);
-    // `;
+  const member_id = res.locals.jwtData.id;
+  const sql = `UPDATE \`post\` SET \`img\` = ? WHERE \`member_id\` = ?;`;
 
-    try {
-        // const [data] = await db.query(insertQuery, [member_id, postcategory_sid + 1, image]);
-        // console.log(data);
-        res.json(image);
-        // // // console.log(image)
-        // res.json(image);
-    } catch (error) {
-        console.error("Error inserting data:", error);
-        res.status(500).json({ error: "An error occurred while inserting data." });
-    }
+  const image = req.file.filename;
+
+  try {
+    await db.query(sql, [image, member_id]);
+    res.json(image);
+  } catch (error) {
+    console.error("Error updating data:", error);
+    res.status(500).json({ error: "An error occurred while updating data." });
+  }
 });
 
 //讀取資料庫圖片檔名抓路徑（用不到）
