@@ -1090,4 +1090,43 @@ router.post("/cardGameCoupon", async (req, res) => {
   console.log(rows);
 });
 
+//卡牌遊戲 判斷是否領過優惠券
+router.get("/cardGameCoupon", async (req, res) => {
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  // 檢查今天是否已經領過
+  const checkCouponStatusQuery = `SELECT * FROM coupons_status WHERE member_id = ? AND coupon_id = 14 AND DATE(created_at) = CURDATE();`;
+  const [rows] = await db.query(checkCouponStatusQuery, [member_id]);
+
+  if (!rows.length) {
+    // If the result is empty, send the "領取失敗" message
+    const output = {
+      success: false,
+      data: "尚未領取",
+    };
+    return res.json(output);
+  }
+  if (rows.length) {
+    // If the result is empty, send the "領取失敗" message
+    const output = {
+      success: true,
+      data: "已經領取",
+    };
+    return res.json(output);
+  }
+});
+
 module.exports = router;
