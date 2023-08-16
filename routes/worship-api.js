@@ -32,10 +32,6 @@ router.post('/confirm', async (req, res) => {
         const sql = `SELECT * FROM \`worship\` WHERE \`pid\` IN (?,?,?);`
         const [data] = await db.query(sql,[pidArr[0],pidArr[1],pidArr[2]])
         res.json(data)
-    }else{
-        const sql = `SELECT * FROM \`worship\`;`
-        const [data] = await db.query(sql)
-        res.json(data)
     }
 })
 
@@ -65,9 +61,19 @@ router.get('/summary', async (req, res) => {
     const member_id = res.locals.jwtData.id
     const sql_notDone = `SELECT ws.* , wd.pid1, wd.pid2, wd.pid3 FROM worship_summary ws JOIN worship_details wd ON ws.wid = wd.wid WHERE \`member_id\`=? AND \`complete\`=0 ORDER BY \`day\` ASC`
     const [notDone] = await db.query(sql_notDone , [member_id])
-    const sql_done = `SELECT ws.* , wd.pid1, wd.pid2, wd.pid3 FROM worship_summary ws JOIN worship_details wd ON ws.wid = wd.wid WHERE \`member_id\`=? AND \`complete\`=1 ORDER BY \`day\` ASC`
+    const sql_done = `SELECT ws.* , wd.pid1, wd.pid2, wd.pid3 FROM worship_summary ws JOIN worship_details wd ON ws.wid = wd.wid WHERE \`member_id\`=? AND \`complete\`=1 ORDER BY \`day\` DESC`
     const [done] = await db.query(sql_done , [member_id])
     const data = [...notDone, ...done]
+    res.json(data)
+})
+
+// 參拜大綱完成更新
+router.put('/summary', async (req, res) => {
+    const member_id = res.locals.jwtData.id
+    const {god, day,time} = req.body.requestData
+    console.log(req.body.requestData);
+    const sql = `UPDATE \`worship_summary\` SET \`complete\`=1 WHERE \`god\`=? AND \`day\`=? AND \`time\`=? AND\`member_id\`=? `
+    const [data] = await db.query(sql, [god, day, time, member_id])
     res.json(data)
 })
 
