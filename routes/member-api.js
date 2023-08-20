@@ -162,7 +162,7 @@ router.post("/signUp", multipartParser, async (req, res) => {
   if (emailExists) {
     return res.status(409).json({
       part: "email",
-      error: `抱歉，${req.body.member_account}已被使用`,
+      error: `${req.body.member_account}已被使用`,
     });
   }
 
@@ -286,14 +286,14 @@ router.put("/personalinfo", async (req, res) => {
     if (emailCount > 0) {
       return res.status(409).json({
         part: "email",
-        error: `抱歉，${req.body.member_account}已被使用`,
+        error: `${req.body.member_account}已被使用`,
       });
     }
 
     if (phoneCount > 0) {
       return res.status(409).json({
         part: "phone",
-        error: `抱歉，${req.body.member_phone}已被使用`,
+        error: `${req.body.member_phone}已被使用`,
       });
     }
 
@@ -1016,7 +1016,7 @@ router.post("/cardGame", async (req, res) => {
 
   const sql = `INSERT INTO card_game_status (member_id, points) VALUES (?, ?);`;
   const [rows] = await db.query(sql, [member_id, points]);
-
+  console.log(rows);
   if (!rows.length) {
     // If the result is empty, send the "尚未簽到記錄" message
     const output = {
@@ -1028,6 +1028,41 @@ router.post("/cardGame", async (req, res) => {
 
   res.json(rows);
   console.log(rows);
+});
+
+//卡牌遊戲 讀取最高分
+router.get("/cardGame", async (req, res) => {
+  const { points } = req.body;
+
+  const output = {
+    success: false,
+    code: 0,
+    error: "",
+  };
+
+  if (!res.locals.jwtData) {
+    output.error = "沒有驗證";
+    return res.json(output);
+  } else {
+    output.jwtData = res.locals.jwtData; // 測試用
+  }
+
+  const member_id = res.locals.jwtData.id;
+
+  const sql = `SELECT * FROM card_game_status WHERE member_id=? ORDER BY points DESC`;
+  const [rows] = await db.query(sql, [member_id]);
+
+  if (!rows.length) {
+    // If the result is empty, send the "尚未簽到記錄" message
+    const output = {
+      success: true,
+      data: "尚未遊玩記錄",
+    };
+    return res.json(output);
+  }
+
+  res.json(rows[0]);
+  console.log(`最高分`, rows[0]);
 });
 
 //卡牌遊戲 優惠券相關
